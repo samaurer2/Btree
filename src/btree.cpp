@@ -32,8 +32,32 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		const int attrByteOffset,
 		const Datatype attrType)
 {
+	//construct the outIndexName
+	std::ostringstream idxStr;
+	idxStr << relationName << '.' << attrByteOffset;
+	outIndexName  = idxStr.str();
+	
+	//Initialize BTreeIndex members
+	this->bufMgr = bufMgrIn;
+	this->attributeType = attrType;
+	this->attrByteOffset = attrByteOffset;
+	
+	//Open the indexFile of type BlobFile
+	if(file->exists(outIndexName)) {
+		//open existing Blobfile
+		BlobFile blob = BlobFile::open(outIndexName);
+		this->file = &blob;
+		this->rootPageNum = file->getFirstPageNo();
+	} else {
+		//open new Blobfile
+		this->file = new BlobFile(outIndexName, true);
+		this->rootPageNum = file->getFirstPageNo();
+	}
+
+	FileScan fscan(relationName, bufMgr);
 
 }
+
 
 
 // -----------------------------------------------------------------------------
