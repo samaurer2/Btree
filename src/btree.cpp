@@ -47,11 +47,29 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		//open existing Blobfile
 		BlobFile blob = BlobFile::open(outIndexName);
 		this->file = &blob;
-		this->rootPageNum = file->getFirstPageNo();
+		//Unneccessary?? Are the arguements always correct, or is the metadata correct?
+		IndexMetaInfo* meta = (IndexMetaInfo*) &blob;
+		this->rootPageNum = meta->rootPageNo;
+		this->attrByteOffset = meta->attrByteOffset;
+		this->attributeType = meta->attrType;
 	} else {
 		//open new Blobfile
-		this->file = new BlobFile(outIndexName, true);
-		this->rootPageNum = file->getFirstPageNo();
+		file = new BlobFile(outIndexName, true);
+		PageId id;
+		
+		//IndexMetaInfo page
+		Page meta = file->allocatePage(id);
+		IndexMetaInfo* dex = (IndexMetaInfo*) (&meta);
+		
+		//Fill IndexMetaInfo
+		dex->attrByteOffset = attrByteOffset;
+		dex->attrType = attrType;
+		relationName.copy(dex->relationName, 20, 0);
+
+		//Allocate page 2 which should be the root of a new index
+		file->allocatePage(id);
+		dex->rootPageNo = id;
+
 	}
 
 	FileScan fscan(relationName, bufMgr);
