@@ -56,19 +56,38 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		//open new Blobfile
 		file = new BlobFile(outIndexName, true);
 		PageId id;
+		Page* page;
 		
 		//IndexMetaInfo page
-		Page meta = file->allocatePage(id);
-		IndexMetaInfo* dex = (IndexMetaInfo*) (&meta);
+		bufMgrIn->allocPage(file, id, page);
+		IndexMetaInfo* dex = (IndexMetaInfo*) (&page);
 		
 		//Fill IndexMetaInfo
 		dex->attrByteOffset = attrByteOffset;
 		dex->attrType = attrType;
 		relationName.copy(dex->relationName, 20, 0);
 
+
 		//Allocate page 2 which should be the root of a new index
-		file->allocatePage(id);
+		bufMgrIn->allocPage(file, id, page);
 		dex->rootPageNo = id;
+		
+		//insert all records into tree here
+		FileScan fscan(relationName, bufMgrIn);
+		try {
+			RecordId scanRid;
+			while(true) {
+				fscan.scanNext(scanRid);
+				std::string recordStr = fscan.getRecord();
+				const char *record = recordStr.c_str();
+				int key = *((int*)(record + attrByteOffset));
+				std::cout << "PageNo: " << scanRid.page_number << "  SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
+			}
+		}
+		catch(const EndOfFileException &e)
+		{
+			std::cout << "Read all records" << std::endl;
+		}
 
 	}
 
