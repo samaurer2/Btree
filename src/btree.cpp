@@ -61,7 +61,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		//IndexMetaInfo page
 		bufMgrIn->allocPage(file, id, page);
 		IndexMetaInfo* dex = (IndexMetaInfo*) (&page);
-		
+		std::cout << id << std::endl;
 		//Fill IndexMetaInfo
 		dex->attrByteOffset = attrByteOffset;
 		dex->attrType = attrType;
@@ -71,7 +71,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		//Allocate page 2 which should be the root of a new index
 		bufMgrIn->allocPage(file, id, page);
 		dex->rootPageNo = id;
-		
+		std::cout << id << std::endl;
 		//insert all records into tree here
 		FileScan fscan(relationName, bufMgrIn);
 		try {
@@ -81,7 +81,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				std::string recordStr = fscan.getRecord();
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
-				std::cout << "PageNo: " << scanRid.page_number << " SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
+				//std::cout << "PageNo: " << scanRid.page_number << " SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
 				insertEntry(&key, scanRid);	
 			}
 		}
@@ -91,8 +91,6 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		}
 
 	}
-
-	FileScan fscan(relationName, bufMgr);
 
 }
 
@@ -112,6 +110,15 @@ BTreeIndex::~BTreeIndex()
 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
 {
+	PageId pid = rootPageNum;
+	Page* currPage;
+	bufMgr->readPage(file, pid, currPage);
+	LeafNodeInt *node = (LeafNodeInt *)(currPage);
+	node->keyArray[0] = *((int*)key);
+	node->ridArray[0] = rid;
+	std::cout <<"Key: "<< node->keyArray[0] << std::endl;
+	std::cout <<"PageNo: "<< node->ridArray[0].page_number << std::endl;
+	std::cout <<"SlotNo: "<< node->ridArray[0].slot_number << std::endl;
 
 }
 
