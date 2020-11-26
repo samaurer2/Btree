@@ -81,7 +81,8 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				std::string recordStr = fscan.getRecord();
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
-				std::cout << "PageNo: " << scanRid.page_number << "  SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
+				std::cout << "PageNo: " << scanRid.page_number << " SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
+				insertEntry(&key, scanRid);	
 			}
 		}
 		catch(const EndOfFileException &e)
