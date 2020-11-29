@@ -59,7 +59,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		this->attributeType = meta->attrType;
 		
 		//root page read into buffer manager
-		bufMgr->readPage(file, id, page);
+		bufMgr->readPage(file, file->getFirstPageNo(), page);
 	} else {
 		
 		//open new Blobfile
@@ -67,28 +67,16 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		
 		//IndexMetaInfo page
 		bufMgrIn->allocPage(file, id, page);
-		
 		struct IndexMetaInfo* dex = (struct IndexMetaInfo*) (page);
+		//initialize dex fields and btree variables
 		dex->attrByteOffset = attrByteOffset;
 		dex->attrType = attrType;
+		dex->rootPageNo = Page::INVALID_NUMBER;
+		this->rootPageNum = dex->rootPageNo;
+		this->attrByteOffset = dex->attrByteOffset;
+		this->attrByteOffset = dex->attrType;
 		relationName.copy(dex->relationName, 20, 0);
-		
 
-
-		//Allocate page 2 which should be the root of a new index
-		bufMgrIn->allocPage(file, id, page);
-		dex->rootPageNo = id;
-		
-		//some default values for new root page which is a leaf node
-		struct LeafNodeInt *node = (struct LeafNodeInt *)(page);
-		for(int i = 0; i < leafOccupancy; ++i) {
-			node->keyArray[i] = 0;
-			node->ridArray[i].page_number = Page::INVALID_NUMBER;
-			node->ridArray[i].slot_number = Page::INVALID_SLOT;
-		}
-		node->rightSibPageNo = Page::INVALID_NUMBER;
-		node->ridArray[leafOccupancy-1].page_number = Page::INVALID_NUMBER;
-		
 		//insert all records into tree here
 		FileScan fscan(relationName, bufMgrIn);
 		try {
@@ -98,7 +86,6 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				std::string recordStr = fscan.getRecord();
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
-				//std::cout << "PageNo: " << scanRid.page_number << " SlotNo: "<<scanRid.slot_number << " Key: "<< key <<std::endl;
 				insertEntry(&key, scanRid);	
 			}
 		}
@@ -110,7 +97,6 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	}
 
 }
-
 
 
 // -----------------------------------------------------------------------------
@@ -125,58 +111,71 @@ BTreeIndex::~BTreeIndex()
 // BTreeIndex::insertEntry
 // -----------------------------------------------------------------------------
 
-void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
-{
-	PageId pid = rootPageNum;
+void BTreeIndex::insertLeaf(const void *key, const RecordId rid, PageId pid) {
+	
 	Page* currPage;
 	bufMgr->readPage(file, pid, currPage);
-	struct NonLeafNodeInt *node = (struct NonLeafNodeInt *)(currPage);
+	struct LeafNodeInt* node = (struct LeafNodeInt*)(currPage);
 	
-	//leaf-node
-	if(node->level != -1) {
-		struct LeafNodeInt *node = (struct LeafNodeInt *)(currPage);
-		
-		//check is array is full
-		//not full
-		if (node->ridArray[leafOccupancy-1].page_number == Page::INVALID_NUMBER){
-			std::cout << "not full" << std::endl;
-			//insert key/rid pair into arrays in a sorted manner
-			int tempKey = *((int*)key);
-			RecordId tempRid = rid;
-			for(int i = 0; i < leafOccupancy; i++) {
-				if (node->keyArray[i] == 0) 
-				{
-					std::cout<< tempRid.page_number<< " "<< tempRid.slot_number <<std::endl;
-					node->keyArray[i] = tempKey;
-					node->ridArray[i] = tempRid;
-					break;
+	if/*not full*/(node->ridArray[leafOccupancy-1].page_number == Page::INVALID_NUMBER)
+	{
+		int tempKey = *((int*)key);
+		RecordId tempRid = rid;
+		std::cout<< tempKey <<" "<< tempRid.page_number<< " "<< tempRid.slot_number <<std::endl;
+		for(int i = 0; i < leafOccupancy; i++) {
+			if (node->ridArray[i].page_number == Page::INVALID_NUMBER) 				{
+				node->keyArray[i] = tempKey;
+				node->ridArray[i] = tempRid;
+				return;
 				}
-				else if (node->keyArray[i] < tempKey)
-				{
-					continue;
-				}
-				else if (node->keyArray[i] > tempKey)
-				{
-					int tempKey2= node->keyArray[i];
-					RecordId tempRid2 = node->ridArray[i];
-					node->keyArray[i] = tempKey;
-					node->ridArray[i] = tempRid;
-					tempKey = tempKey2;
-					tempRid = tempRid2;
-				}
-											
+			else if (node->keyArray[i] < tempKey)
+			{
+				continue;
+			}
+			else if (node->keyArray[i] > tempKey)
+			{
+				int tempKey2= node->keyArray[i];
+				RecordId tempRid2 = node->ridArray[i];
+				node->keyArray[i] = tempKey;
+				node->ridArray[i] = tempRid;
+				tempKey = tempKey2;
+				tempRid = tempRid2;
 			}
 		}
-		
-		//full
-		else  {
-			std::cout << "full" << std::endl;
-		}
 	}
-	//non-leaf node
-	else {
-		node = (struct NonLeafNodeInt *)(currPage);
+	else /*full*/
+	{
+		/* code */
 	}
+	
+	
+
+
+}
+void BTreeIndex::insertInternal(const void *key, const RecordId rid, PageId pid) {
+}
+void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
+{	
+	PageId pid;
+	Page* currPage;
+	
+	if(rootPageNum == Page::INVALID_NUMBER) {
+		bufMgr->allocPage(file, pid, currPage);
+		rootPageNum = pid;
+		insertLeaf(key, rid, pid);
+		return;
+	}
+	
+	bufMgr->readPage(file, rootPageNum, currPage);
+	pid = rootPageNum;
+	
+	struct NonLeafNodeInt* node = (struct NonLeafNodeInt*)(currPage);
+	if/*leaf*/ (node->level != -1)
+	{
+		insertLeaf(key, rid, pid);
+	}
+	
+
 }
 
 // -----------------------------------------------------------------------------
