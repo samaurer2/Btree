@@ -42,36 +42,53 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	this->attributeType = attrType;
 	this->attrByteOffset = attrByteOffset;
 	
+	PageId id;
+	Page* page;
+	
 	//Open the indexFile of type BlobFile
 	if(file->exists(outIndexName)) {
+		
 		//open existing Blobfile
 		BlobFile blob = BlobFile::open(outIndexName);
 		this->file = &blob;
+		
 		//Unneccessary?? Are the arguements always correct, or is the metadata correct?
-		IndexMetaInfo* meta = (IndexMetaInfo*) &blob;
+		struct IndexMetaInfo* meta = (struct IndexMetaInfo*) &blob;
 		this->rootPageNum = meta->rootPageNo;
 		this->attrByteOffset = meta->attrByteOffset;
 		this->attributeType = meta->attrType;
+		
+		//root page read into buffer manager
+		bufMgr->readPage(file, id, page);
 	} else {
+		
 		//open new Blobfile
-		file = new BlobFile(outIndexName, true);
-		PageId id;
-		Page* page;
+		file = new BlobFile(outIndexName, true);		
 		
 		//IndexMetaInfo page
 		bufMgrIn->allocPage(file, id, page);
-		IndexMetaInfo* dex = (IndexMetaInfo*) (&page);
-		std::cout << id << std::endl;
-		//Fill IndexMetaInfo
+		
+		struct IndexMetaInfo* dex = (struct IndexMetaInfo*) (page);
 		dex->attrByteOffset = attrByteOffset;
 		dex->attrType = attrType;
 		relationName.copy(dex->relationName, 20, 0);
+		
 
 
 		//Allocate page 2 which should be the root of a new index
 		bufMgrIn->allocPage(file, id, page);
 		dex->rootPageNo = id;
-		std::cout << id << std::endl;
+		
+		//some default values for new root page which is a leaf node
+		struct LeafNodeInt *node = (struct LeafNodeInt *)(page);
+		for(int i = 0; i < leafOccupancy; ++i) {
+			node->keyArray[i] = 0;
+			node->ridArray[i].page_number = Page::INVALID_NUMBER;
+			node->ridArray[i].slot_number = Page::INVALID_SLOT;
+		}
+		node->rightSibPageNo = Page::INVALID_NUMBER;
+		node->ridArray[leafOccupancy-1].page_number = Page::INVALID_NUMBER;
+		
 		//insert all records into tree here
 		FileScan fscan(relationName, bufMgrIn);
 		try {
@@ -113,13 +130,53 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	PageId pid = rootPageNum;
 	Page* currPage;
 	bufMgr->readPage(file, pid, currPage);
-	LeafNodeInt *node = (LeafNodeInt *)(currPage);
-	node->keyArray[0] = *((int*)key);
-	node->ridArray[0] = rid;
-	std::cout <<"Key: "<< node->keyArray[0] << std::endl;
-	std::cout <<"PageNo: "<< node->ridArray[0].page_number << std::endl;
-	std::cout <<"SlotNo: "<< node->ridArray[0].slot_number << std::endl;
-
+	struct NonLeafNodeInt *node = (struct NonLeafNodeInt *)(currPage);
+	
+	//leaf-node
+	if(node->level != -1) {
+		struct LeafNodeInt *node = (struct LeafNodeInt *)(currPage);
+		
+		//check is array is full
+		//not full
+		if (node->ridArray[leafOccupancy-1].page_number == Page::INVALID_NUMBER){
+			std::cout << "not full" << std::endl;
+			//insert key/rid pair into arrays in a sorted manner
+			int tempKey = *((int*)key);
+			RecordId tempRid = rid;
+			for(int i = 0; i < leafOccupancy; i++) {
+				if (node->keyArray[i] == 0) 
+				{
+					std::cout<< tempRid.page_number<< " "<< tempRid.slot_number <<std::endl;
+					node->keyArray[i] = tempKey;
+					node->ridArray[i] = tempRid;
+					break;
+				}
+				else if (node->keyArray[i] < tempKey)
+				{
+					continue;
+				}
+				else if (node->keyArray[i] > tempKey)
+				{
+					int tempKey2= node->keyArray[i];
+					RecordId tempRid2 = node->ridArray[i];
+					node->keyArray[i] = tempKey;
+					node->ridArray[i] = tempRid;
+					tempKey = tempKey2;
+					tempRid = tempRid2;
+				}
+											
+			}
+		}
+		
+		//full
+		else  {
+			std::cout << "full" << std::endl;
+		}
+	}
+	//non-leaf node
+	else {
+		node = (struct NonLeafNodeInt *)(currPage);
+	}
 }
 
 // -----------------------------------------------------------------------------
