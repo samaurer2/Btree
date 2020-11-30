@@ -122,11 +122,8 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 	 
 	 if /*not full*/(node->ridArray[INTARRAYLEAFSIZE-1].page_number == Page::INVALID_NUMBER)
 	 {
-		std::cout<<node->ridArray[INTARRAYLEAFSIZE-1].page_number << std::endl;
 		int tempKey = *((int*)key);
 		RecordId tempRid = rid;
-		//std::cout<<"not full" << std::endl;
-		//std::cout<< tempKey <<" "<< tempRid.page_number<< " "<< tempRid.slot_number <<std::endl;
 		//empty slot, insert return
 		for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
 			if (node->ridArray[i].page_number == Page::INVALID_NUMBER) {
@@ -153,11 +150,13 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 			}
 		}
 	}
-	else 
+	else /*full*/
 	{
 		Page* low = currPage;
 		Page* high;
 		PageId highId;
+		
+		//alloc and initialized new page
 		bufMgr->allocPage(file, highId, high);
 		struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
 		for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
@@ -165,13 +164,17 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 			highNode->ridArray[i].page_number = Page::INVALID_NUMBER;
 			highNode->ridArray[i].slot_number = Page::INVALID_SLOT;
 		}
+		//find median and split the array into low and high
 		int median = node->keyArray[INTARRAYLEAFSIZE/2];
 		for (size_t i = 0, j = 0; i < INTARRAYLEAFSIZE; i++)
-		{
+		{	
+			//below median value do nothing
 			if(node->keyArray[i] < median) 
 			{
 				continue;
 			}
+			//higher than median, copy value into high node array
+			//then set low node value to default value
 			else 
 			{
 				highNode->keyArray[j] = node->keyArray[i];
@@ -180,10 +183,72 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 				j++;
 			}
 		}
+		//set sibling pointer
 		node->rightSibPageNo = highId;
-		
 
+		//insert key value into appropriate array, low or high
+		if /*insert low*/(*((int*)key) < median)
+		{
+			int tempKey = *((int*)key);
+			RecordId tempRid = rid;
+			//empty slot, insert return
+			for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
+				if (node->ridArray[i].page_number == Page::INVALID_NUMBER) {
+					node->keyArray[i] = tempKey;
+					node->ridArray[i] = tempRid;
+					break;
+					}
+				//non-empy slot, keep searching
+				else if (node->keyArray[i] < tempKey)
+				{
+					continue;
+				}
+				//non-empty slot, replace and shift
+				else if (node->keyArray[i] > tempKey)
+				{
+					int tempKey2= node->keyArray[i];
+					RecordId tempRid2 = node->ridArray[i];
+					node->keyArray[i] = tempKey;
+					node->ridArray[i] = tempRid;
+					tempKey = tempKey2;
+					tempRid = tempRid2;
+				}
+			}
+		}
+		else /*insert high*/
+		{
+			int tempKey = *((int*)key);
+			RecordId tempRid = rid;
+			//empty slot, insert return
+			for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
+				if (highNode->ridArray[i].page_number == Page::INVALID_NUMBER) {
+					highNode->keyArray[i] = tempKey;
+					highNode->ridArray[i] = tempRid;
+					break;
+				}
+				//non-empy slot, keep searching
+				else if (highNode->keyArray[i] < tempKey)
+				{
+					continue;
+				}
+				//non-empty slot, replace and shift
+				else if (highNode->keyArray[i] > tempKey)
+				{
+					int tempKey2= node->keyArray[i];
+					RecordId tempRid2 = node->ridArray[i];
+					highNode->keyArray[i] = tempKey;
+					highNode->ridArray[i] = tempRid;
+					tempKey = tempKey2;
+					tempRid = tempRid2;
+				}
+			}
+		}
 		
+		
+		
+		PageKeyPair<PageId> pair;
+		pair.set(median, highId);
+		return pair;		
 	}
 }
 
