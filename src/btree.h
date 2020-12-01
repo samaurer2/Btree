@@ -364,8 +364,8 @@ class BTreeIndex {
 	 * @throws ScanNotInitializedException If no scan has been initialized.
 	**/
 	void endScan();
-  PageKeyPair<PageId> insertLeaf(const void *key, const RecordId rid, PageId pid);
-  PageKeyPair<PageId> insertInternal(const void *key, const RecordId rid, PageId pid);
+  PageKeyPair<int> insertLeaf(const void *key, const RecordId rid, PageId pid);
+  PageKeyPair<int> insertInternal(const void *key, const RecordId rid, PageId pid);
   PageId search(const void *key, const RecordId rid, PageId pid);
 };
 }
