@@ -125,12 +125,14 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 		int tempKey = *((int*)key);
 		RecordId tempRid = rid;
 		//empty slot, insert return
+		std::cout<<"not full"<<std::endl;
 		for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
 			if (node->ridArray[i].page_number == Page::INVALID_NUMBER) {
 				node->keyArray[i] = tempKey;
 				node->ridArray[i] = tempRid;
 				PageKeyPair<PageId> pair;
 				pair.set(-1, Page::INVALID_NUMBER);
+				bufMgr->unPinPage(file, pid, true);
 				return pair;
 				}
 			//non-empy slot, keep searching
@@ -155,7 +157,7 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 		Page* low = currPage;
 		Page* high;
 		PageId highId;
-		
+		std::cout<<"full"<<std::endl;
 		//alloc and initialized new page
 		bufMgr->allocPage(file, highId, high);
 		struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
@@ -179,7 +181,9 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 			{
 				highNode->keyArray[j] = node->keyArray[i];
 				highNode->ridArray[j] = node->ridArray[i];
-				node->keyArray[i] = highNode->keyArray[INTARRAYLEAFSIZE-1];
+				node->ridArray[i].page_number = Page::INVALID_NUMBER;
+				node->ridArray[i].slot_number = Page::INVALID_SLOT;
+				node->keyArray[i] = 0;
 				j++;
 			}
 		}
@@ -248,6 +252,8 @@ PageKeyPair<PageId> BTreeIndex::insertLeaf(const void *key, const RecordId rid, 
 		
 		PageKeyPair<PageId> pair;
 		pair.set(median, highId);
+		bufMgr->unPinPage(file, pid, true);
+		bufMgr->unPinPage(file, highId, true);
 		return pair;		
 	}
 }
