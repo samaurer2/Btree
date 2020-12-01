@@ -164,7 +164,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		Page* low = currPage;
 		Page* high;
 		PageId highId;
-		std::cout<<"full"<<std::endl;
+		std::cout<<"Leaf full"<<std::endl;
 		//alloc and initialized new page
 		bufMgr->allocPage(file, highId, high);
 		std::cout << "Alloc Page Split Leaf: " << highId<<std::endl;
@@ -264,7 +264,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		
 		//return PageNo of new page along with median value
 		PageKeyPair<int> pair;
-		pair.set(high->page_number(), median);
+		pair.set(highId, median);
 		
 		//unpin pages
 		bufMgr->unPinPage(file, pid, true);
@@ -283,25 +283,70 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 	PageKeyPair<int> pair;
 
 	//compare keys to find appropriate page
-	for (size_t i = 0; i <= INTARRAYNONLEAFSIZE; i++)
+	for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 	{
-		if((i == INTARRAYNONLEAFSIZE) || (*((int*)key) > node->keyArray[i])) 
+		if ((i == INTARRAYNONLEAFSIZE) || (*((int*)key) < node->keyArray[i]))
 		{
-			if /*non-leaf*/(node->level == 1) 
-			{
-				pair = insertInternal(key, rid, node->pageNoArray[i]);
-				break;
-			}
-			else /*leaf*/
-			{
 				pair = insertLeaf(key, rid, node->pageNoArray[i]);
-				//std::cout<<"PageNo: "<<pair.pageNo<<" Key: "<<pair.key<<std::endl;
-				break;
-			}
 		}
+		
 	}
-	
-	return pair;
+	//no new value to insert
+	if (pair.pageNo == Page::INVALID_NUMBER)
+	{
+		bufMgr->unPinPage(file, pid, false);
+		return pair;
+	}
+
+	//attempt insert new value
+	// else 
+	// {
+	// 	if /*not full*/(node->pageNoArray[INTARRAYNONLEAFSIZE] == Page::INVALID_NUMBER)
+	// 	{
+	// 		int tempKey = pair.key;
+	// 		PageId tempPid = pair.pageNo;
+	// 		for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
+	// 		{	
+	// 			//empty slot, replace and return
+	// 			if (node->keyArray[i] == 0)
+	// 			{
+	// 				node->keyArray[i] = tempKey;
+	// 				node->pageNoArray[i] = tempPid;
+	// 				bufMgr->unPinPage(file, pid, true);
+	// 				int j = 0;
+	// 				while(node->pageNoArray[j] != Page::INVALID_NUMBER)
+	// 				{
+	// 					std::cout<<"j: "<<j << " "<<node->pageNoArray[j]<<std::endl;
+	// 					j++;
+	// 				}
+	// 				pair.set(Page::INVALID_NUMBER, -1);
+	// 				return pair;
+	// 			}
+				
+	// 			//non empty slot, keep searching
+	// 			else if (node->keyArray[i] < tempKey)
+	// 				continue;
+				
+	// 			// non empty slot, insert and shift
+	// 			else if(node->keyArray[i] > tempKey)
+	// 			{
+	// 				int tempKey2 = node->keyArray[i];
+	// 				PageId tempPid2 = node->pageNoArray[i];
+	// 				node->keyArray[i] = tempKey;
+	// 				node->pageNoArray[i] = tempPid;
+	// 				tempKey = tempKey2;
+	// 				tempPid = tempPid2;
+	// 			}
+				
+
+	// 		}
+	// 	}
+
+	// 	else/*full*/
+	// 	{
+			
+	// 	}
+	// }
 }
 
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
@@ -323,17 +368,30 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		}
 
 	}
+	PageKeyPair<int> pair;
+	if (rootPageNum == 2)
+	{
+		pair = insertLeaf(key, rid, rootPageNum);
+
+	} 
+	else
+	{
+		pair = insertInternal(key, rid, rootPageNum);
+	}
 	
-	PageKeyPair<int> pair = insertInternal(key, rid, rootPageNum);
+	
 	//std::cout<<"PageNo: "<<pair.pageNo<<" Key: "<<pair.key<<std::endl;
 	
 	if/*root splits*/ (pair.pageNo != Page::INVALID_NUMBER)
 	{
+		std::cout<<"Root full"<<std::endl;
 		PageId newRootId;
 		Page* newRoot;
 		//alloc and initialize new non-leaf node
 		bufMgr->allocPage(file, newRootId, newRoot);
-		std::cout << "Alloc Page Split Root: " << newRootId<<std::endl;
+		std::cout<<rootPageNum<<std::endl;
+		std::cout<<pair.pageNo<<std::endl;
+		std::cout<<newRootId<<std::endl;
 		struct NonLeafNodeInt* rootNode = (struct NonLeafNodeInt*)(newRoot);
 		for (size_t i = 0; i < INTARRAYNONLEAFSIZE+1; i++)
 		{
@@ -341,11 +399,11 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		}
 		
 		rootNode->keyArray[0] = pair.key;
-		rootNode->pageNoArray[0] = id;
+		rootNode->pageNoArray[0] = rootPageNum;
 		rootNode->pageNoArray[1] = pair.pageNo;
 		rootNode->level = 0;
 		rootPageNum = newRootId;
-		bufMgr->unPinPage(file, newRootId, true);
+		int i = 0;
 	}
 	
 }
