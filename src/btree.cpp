@@ -180,7 +180,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		for (size_t i = 0, j = 0; i < INTARRAYLEAFSIZE; i++)
 		{	
 			//below median value do nothing
-			if(node->keyArray[i] < median) 
+			if(node->keyArray[i] <= median) 
 			{
 				continue;
 			}
@@ -196,6 +196,13 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 				j++;
 			}
 		}
+		// for(int i = 0; i < INTARRAYLEAFSIZE; ++i)
+		// {
+		// 	if(node->keyArray[i] != 0 && highNode->keyArray[i] != 0 )
+		// 	{
+		// 	std::cout<<"low: "<< node->keyArray[i]<<" high: "<< highNode->keyArray[i]<<std::endl;
+		// 	}
+		// }
 		//set sibling pointer
 		node->rightSibPageNo = highId;
 
@@ -262,13 +269,6 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 			}
 		}
 		
-		// for(int i = 0; i < INTARRAYLEAFSIZE; ++i)
-		// {
-		// 	if(node->keyArray[i] != 0 && highNode->keyArray[i] != 0 )
-		// 	{
-		// 	std::cout<<"low: "<< node->keyArray[i]<<" high: "<< highNode->keyArray[i]<<std::endl;
-		// 	}
-		// }
 		//return PageNo of new page along with median value
 		PageKeyPair<int> pair;
 		pair.set(highId, median);
@@ -351,10 +351,9 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 					PageId tempPid2 = node->pageNoArray[i];
 					node->keyArray[i]= tempKey;
 					node->pageNoArray[i]=tempPid;
-					tempKey = tempKey;
+					tempKey = tempKey2;
 					tempPid = tempPid2;
-				}
-				
+				}				
 				
 			}
 			
@@ -362,7 +361,11 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 
 		else/*full, need to split internal node*/
 		{
-			
+			Page* high;
+			PageId highId;
+
+			bufMgr->allocPage(file, highId, high);
+			struct NonLeafNodeInt* highNode =(struct NonLeafNodeInt*)(high); 
 		}
 		
 		
