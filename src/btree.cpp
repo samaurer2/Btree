@@ -510,7 +510,8 @@ void BTreeIndex::startScan(const void* lowValParm,
 			}
 			else
 			{
-				nextEntry = i+1;			}
+				nextEntry = i+1;			
+			}
 			
 			return;
 		}
