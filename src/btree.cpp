@@ -119,7 +119,6 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 	Page* currPage;
 	bufMgr->readPage(file, pid, currPage);
 	struct LeafNodeInt* node = (struct LeafNodeInt*)(currPage);
-
 	 
 	 if /*not full*/(node->ridArray[INTARRAYLEAFSIZE-1].page_number == Page::INVALID_NUMBER)
 	 {
@@ -179,7 +178,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		std::cout<<"Median: "<<median<<std::endl;
 		for (size_t i = 0, j = 0; i < INTARRAYLEAFSIZE; i++)
 		{	
-			//below median value do nothing
+			//below or equal median value do nothing
 			if(node->keyArray[i] <= median) 
 			{
 				continue;
@@ -204,6 +203,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		// 	}
 		// }
 		//set sibling pointer
+		highNode->rightSibPageNo = node->rightSibPageNo;
 		node->rightSibPageNo = highId;
 
 		//insert key value into appropriate array, low or high
@@ -272,6 +272,12 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		//return PageNo of new page along with median value
 		PageKeyPair<int> pair;
 		pair.set(highId, median);
+		int i = 0;
+		while(node->keyArray[i]!=0)
+		{
+			i++;
+		}
+		//std::cout<<"highest low value: "<<node->keyArray[i-1] <<" median: " <<median<<"lowest high value: "<< highNode->keyArray[0]<<std::endl;
 		//unpin pages
 		bufMgr->unPinPage(file, pid, true);
 		bufMgr->unPinPage(file, highId, true);
@@ -290,7 +296,7 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 	
 	for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 	{
-		if (i == INTARRAYNONLEAFSIZE || node->pageNoArray[i+1] == Page::INVALID_NUMBER || node->keyArray[i] > *((int*)key))
+		if (i == INTARRAYNONLEAFSIZE || node->pageNoArray[i+1] == Page::INVALID_NUMBER || node->keyArray[i] >= *((int*)key))
 		{
 			//std::cout<<node->keyArray[i]<< " "<< *((int*)key)<<std::endl;
 			if (node->level == 1)
@@ -437,7 +443,38 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	
 	
 }
+/*
+*	sets BTreeIndex::currentPageNum to the page in the realation containing low op value
+*/
+void BTreeIndex::findPage(PageId pid)
+{
+	Page* currPage;
+	bufMgr->readPage(file, pid, currPage);
+	struct NonLeafNodeInt* node = (struct NonLeafNodeInt*)(currPage);
+	currentPageNum = pid;
 
+	for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
+	{
+		if (i == INTARRAYNONLEAFSIZE || node->pageNoArray[i+1] == Page::INVALID_NUMBER || node->keyArray[i] >= lowValInt)
+		{
+			//std::cout<<node->keyArray[i]<< " "<< *((int*)key)<<std::endl;
+			if (node->level == 1)
+			{			
+				currentPageNum = node->pageNoArray[i];
+				bufMgr->unPinPage(file, pid, false);
+				return;
+			}
+			else
+			{
+				findPage(node->pageNoArray[i]);
+				bufMgr->unPinPage(file, pid, false);
+				return;
+			}	
+			
+		}
+		
+	}
+}
 // -----------------------------------------------------------------------------
 // BTreeIndex::startScan
 // -----------------------------------------------------------------------------
@@ -447,6 +484,41 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const void* highValParm,
 				   const Operator highOpParm)
 {
+	lowOp = lowOpParm;
+	highOp = highOpParm;
+	lowValInt = *((int*)lowValParm);
+	highValInt = *((int*)highValParm);
+	//To Do: error checking the opcode/params
+
+	if (rootPageNum != 2)
+		findPage(rootPageNum);
+	
+	scanExecuting = true;
+	bufMgr->readPage(file, currentPageNum, currentPageData);
+
+	struct LeafNodeInt* node =(struct LeafNodeInt*)(currentPageData);
+
+	for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
+	{
+		if /*key not found*/(node->keyArray[i] < lowValInt)
+			continue;
+		else/*key found*/
+		{
+			if ((lowOp == GTE) && (node->keyArray[i] >= lowValInt))
+			{
+				nextEntry = i;
+			}
+			else
+			{
+				nextEntry = i+1;			}
+			
+			return;
+		}
+		
+	}	
+	throw NoSuchKeyFoundException();
+	 
+
 
 }
 
@@ -456,7 +528,41 @@ void BTreeIndex::startScan(const void* lowValParm,
 
 void BTreeIndex::scanNext(RecordId& outRid) 
 {
-
+	//error checking if called when scan not started
+	if (scanExecuting)
+	{
+		struct LeafNodeInt* node = (struct LeafNodeInt*)(currentPageData);	
+		if (((highOp == LTE && (node->keyArray[nextEntry] <= highValInt)))
+		||	(highOp == LT && (node->keyArray[nextEntry] < highValInt)))
+		{
+			outRid = node->ridArray[nextEntry];
+			nextEntry++;
+		}
+		else
+		{
+			throw IndexScanCompletedException();
+		}
+		
+	
+		if (nextEntry == INTARRAYLEAFSIZE)
+		{
+			bufMgr->unPinPage(file, currentPageNum, false);
+			if (node->rightSibPageNo != Page::INVALID_NUMBER)
+			{
+				bufMgr->readPage(file,node->rightSibPageNo, currentPageData);
+				currentPageNum = node->rightSibPageNo;
+				nextEntry = 0;				
+			}
+			else
+			{
+				endScan();
+			}				
+		}
+	}
+	else
+		throw ScanNotInitializedException();
+	
+	
 }
 
 // -----------------------------------------------------------------------------
@@ -465,7 +571,7 @@ void BTreeIndex::scanNext(RecordId& outRid)
 //
 void BTreeIndex::endScan() 
 {
-
+	scanExecuting = false;
 }
 
 }

@@ -367,5 +367,6 @@ class BTreeIndex {
   PageKeyPair<int> insertLeaf(const void *key, const RecordId rid, PageId pid);
   PageKeyPair<int> insertInternal(const void *key, const RecordId rid, PageId pid);
   PageId search(const void *key, const RecordId rid, PageId pid);
+  void findPage(PageId pid);
 };
 }

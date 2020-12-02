@@ -280,7 +280,7 @@ void createRelationBackward()
 
 void createRelationRandom()
 {
-  // destroy any old copies of relation file
+  // destroy any old copies of relation fileq
 	try
 	{
 		File::remove(relationName);
