@@ -457,7 +457,6 @@ void BTreeIndex::findPage(PageId pid)
 	{
 		if (i == INTARRAYNONLEAFSIZE || node->pageNoArray[i+1] == Page::INVALID_NUMBER || node->keyArray[i] >= lowValInt)
 		{
-			//std::cout<<node->keyArray[i]<< " "<< *((int*)key)<<std::endl;
 			if (node->level == 1)
 			{			
 				currentPageNum = node->pageNoArray[i];
@@ -500,22 +499,16 @@ void BTreeIndex::startScan(const void* lowValParm,
 
 	for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
 	{
-		if /*key not found*/(node->keyArray[i] < lowValInt)
-			continue;
-		else/*key found*/
+		if ((lowOp == GTE) && (node->keyArray[i] >= lowValInt))
 		{
-			if ((lowOp == GTE) && (node->keyArray[i] >= lowValInt))
-			{
-				nextEntry = i;
-			}
-			else
-			{
-				nextEntry = i+1;			
-			}
-			
+			nextEntry = i;
 			return;
 		}
-		
+		else if ((lowOp == GT) && (node->keyArray[i] > lowValInt))
+		{
+			nextEntry = i;
+			return;
+		}	
 	}	
 	throw NoSuchKeyFoundException();
 	 
@@ -532,19 +525,8 @@ void BTreeIndex::scanNext(RecordId& outRid)
 	//error checking if called when scan not started
 	if (scanExecuting)
 	{
-		struct LeafNodeInt* node = (struct LeafNodeInt*)(currentPageData);	
-		if (((highOp == LTE && (node->keyArray[nextEntry] <= highValInt)))
-		||	(highOp == LT && (node->keyArray[nextEntry] < highValInt)))
-		{
-			outRid = node->ridArray[nextEntry];
-			nextEntry++;
-		}
-		else
-		{
-			throw IndexScanCompletedException();
-		}
+		struct LeafNodeInt* node = (struct LeafNodeInt*)(currentPageData);
 		
-	
 		if (nextEntry == INTARRAYLEAFSIZE)
 		{
 			bufMgr->unPinPage(file, currentPageNum, false);
@@ -556,8 +538,19 @@ void BTreeIndex::scanNext(RecordId& outRid)
 			}
 			else
 			{
+				bufMgr->unPinPage(file,currentPageNum,false);
 				endScan();
 			}				
+		}
+		if (((highOp == LTE && (node->keyArray[nextEntry] <= highValInt)))
+		|| (highOp == LT && (node->keyArray[nextEntry] < highValInt)))
+		{
+			outRid = node->ridArray[nextEntry];
+			nextEntry++;
+		}
+		else
+		{
+			throw IndexScanCompletedException();
 		}
 	}
 	else
@@ -572,7 +565,11 @@ void BTreeIndex::scanNext(RecordId& outRid)
 //
 void BTreeIndex::endScan() 
 {
+	if (!scanExecuting)
+		throw ScanNotInitializedException();
 	scanExecuting = false;
+	currentPageData = NULL;
+	currentPageNum = Page::INVALID_NUMBER;
 }
 
 }
