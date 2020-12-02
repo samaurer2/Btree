@@ -294,7 +294,7 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 		{
 			//std::cout<<node->keyArray[i]<< " "<< *((int*)key)<<std::endl;
 			if (node->level == 1)
-			{
+			{			
 				pair = insertLeaf(key, rid, node->pageNoArray[i]);
 				break;	
 			}
@@ -330,8 +330,9 @@ PageKeyPair<int> BTreeIndex::insertInternal(const void *key, const RecordId rid,
 				if (node->keyArray[i] == 0)
 				{
 					node->keyArray[i] = tempKey;
-					node->pageNoArray[i] = tempPid;
+					node->pageNoArray[i+1] = tempPid;
 					pair.set(Page::INVALID_NUMBER, -1);
+					std::cout<<"search page: "<< pid<<std::endl;
 					for (size_t i = 0; i < 20; i++)
 						{
 							std::cout<<"pageNo: "<<node->pageNoArray[i]<<" key: "<<node->keyArray[i]<<std::endl;
@@ -382,7 +383,6 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 {	
 	PageId id;
 	Page* currPage;
-	
 
 	if/*No root*/ (rootPageNum == Page::INVALID_NUMBER)
 	{
@@ -400,7 +400,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	PageKeyPair<int> pair;
 	if (rootPageNum == 2)
 	{
-		pair = insertLeaf(key, rid, rootPageNum);
+		pair = insertLeaf(key, rid, rootPageNum);	
 	}
 	else 
 	{
@@ -431,9 +431,10 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 			rootNode->level = 0;
 		
 		rootPageNum = newRootId;
-		int i = 0;
-		//std::cout<<"low: "<<rootNode->pageNoArray[0]<<" key: "<<rootNode->keyArray[0]<<" high: "<< rootNode->pageNoArray[1]<<std::endl;
+
+		std::cout<<"low: "<<rootNode->pageNoArray[0]<<" key: "<<rootNode->keyArray[0]<<" high: "<< rootNode->pageNoArray[1]<<std::endl;
 	}
+	
 	
 }
 
