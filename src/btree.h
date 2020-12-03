@@ -41,18 +41,23 @@ enum Operator
 	GT		/* Greater Than */
 };
 
+enum NodeType
+{
+  LEAF,
+  NONLEAF
+};
 
 /**
  * @brief Number of key slots in B+Tree leaf for INTEGER key.
  */
-//                                                  sibling ptr             key               rid
-const  int INTARRAYLEAFSIZE = ( Page::SIZE - sizeof( PageId ) ) / ( sizeof( int ) + sizeof( RecordId ) );
+//                                             type variable     sibling ptr             key               rid
+const  int INTARRAYLEAFSIZE = ( Page::SIZE -sizeof(NodeType)- sizeof( PageId ) ) / ( sizeof( int ) + sizeof( RecordId ) );
 
 /**
  * @brief Number of key slots in B+Tree non-leaf for INTEGER key.
  */
-//                                                     level     extra pageNo                  key       pageNo
-const  int INTARRAYNONLEAFSIZE = ( Page::SIZE - sizeof( int ) - sizeof( PageId ) ) / ( sizeof( int ) + sizeof( PageId ) );
+//                                                 type variable    level     extra pageNo                  key       pageNo
+const  int INTARRAYNONLEAFSIZE = ( Page::SIZE -sizeof(NodeType)- sizeof( int ) - sizeof( PageId ) ) / ( sizeof( int ) + sizeof( PageId ) );
 
 /**
  * @brief Structure to store a key-rid pair. It is used to pass the pair to functions that 
@@ -141,6 +146,8 @@ at this level are just above the leaf nodes. Otherwise set to 0.
  * @brief Structure for all non-leaf nodes when the key is of INTEGER type.
 */
 struct NonLeafNodeInt{
+  
+  NodeType type;
   /**
    * Level of the node in the tree.
    */
@@ -162,6 +169,8 @@ struct NonLeafNodeInt{
  * @brief Structure for all leaf nodes when the key is of INTEGER type.
 */
 struct LeafNodeInt{
+  
+  NodeType type;
   /**
    * Stores keys.
    */
@@ -365,7 +374,7 @@ class BTreeIndex {
 	**/
 	void endScan();
   PageKeyPair<int> insertLeaf(const void *key, const RecordId rid, PageId pid);
-  PageKeyPair<int> insertInternal(const void *key, const RecordId rid, PageId pid);
+  PageKeyPair<int> insertNonLeaf(const void *key, const RecordId rid, PageId pid);
   PageId search(const void *key, const RecordId rid, PageId pid);
   void findPage(PageId pid);
 };
