@@ -66,12 +66,19 @@ BufMgr * bufMgr = new BufMgr(100);
 void createRelationForward();
 void createRelationBackward();
 void createRelationRandom();
+void createRelationForwardZeroTuples();
+void intEmptyTreeTest();
+void indexEmptyTests();
 void intTests();
+void indexOutOfBoundTests();
+void intTestOutOfBounds();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
 void test1();
 void test2();
 void test3();
+void test4();
+void test5();
 void errorTests();
 void deleteRelation();
 
@@ -137,6 +144,8 @@ int main(int argc, char **argv)
 	test1();
 	test2();
 	test3();
+  test4();
+  test5();
 	errorTests();
 
 	delete bufMgr;
@@ -153,6 +162,7 @@ void test1()
 	createRelationForward();
 	indexTests();
 	deleteRelation();
+  std::cout << "\nTest 1 passed\n" << std::endl;
 }
 
 void test2()
@@ -164,6 +174,8 @@ void test2()
 	createRelationBackward();
 	indexTests();
 	deleteRelation();
+  std::cout << "\nTest 2 passed\n" << std::endl;
+ 
 }
 
 void test3()
@@ -175,8 +187,54 @@ void test3()
 	createRelationRandom();
 	indexTests();
 	deleteRelation();
+  std::cout << "\nTest 3 passed\n" << std::endl;
 }
 
+void test4() {
+  // Create an index file and test on Scan it with lowVal and HighVal that are out of bound
+  // on attribute of type int 
+  std::cout << "--------------------" << std::endl;
+  std::cout << "Index Out of Bounds Test" << std::endl;
+  createRelationForward();
+  std::cout << "\nHola\n" << std::endl;
+  indexOutOfBoundTests();
+  deleteRelation();
+  std::cout << "\nTest 4 passed\n" << std::endl;
+}
+
+void test5() { 
+  // Create an empty BTree and check whether it can handle a tree with 0 leaf
+  // on attribute of type int
+  std::cout << "--------------------" << std::endl;
+  std::cout << "create empty tree && test" << std::endl;
+  createRelationForwardZeroTuples();
+  indexEmptyTests();
+  deleteRelation();
+  std::cout << "\nTest 5 passed\n" << std::endl;
+}
+
+// -----------------------------------------------------------------------------
+// createZeroRelationForward
+// -----------------------------------------------------------------------------
+void createRelationForwardZeroTuples()
+{
+  std::vector<RecordId> ridVec;
+  // destroy any old copies of relation file
+  try
+  {
+    File::remove(relationName);
+  }
+  catch (FileNotFoundException e)
+  {
+  }
+  file1 = new PageFile(relationName, true);
+
+  // Initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+  PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+  file1->writePage(new_page_number, new_page);
+}
 // -----------------------------------------------------------------------------
 // createRelationForward
 // -----------------------------------------------------------------------------
@@ -355,6 +413,12 @@ void indexTests()
   }
 }
 
+void intTestOutOfBounds() {
+  std::cout << "Create a B+ Tree index on the integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i), INTEGER);
+
+  checkPassFail(intScan(&index, -1000000, GT, 100000, LT), relationSize) 
+}
 // -----------------------------------------------------------------------------
 // intTests
 // -----------------------------------------------------------------------------
@@ -372,6 +436,22 @@ void intTests()
 	checkPassFail(intScan(&index,0,GT,1,LT), 0)
 	checkPassFail(intScan(&index,300,GT,400,LT), 99)
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 1000)
+}
+
+void intEmptyTreeTests()
+{
+  std::cout << "Create a B+ Tree index on the  integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
+
+  // run some tests
+  checkPassFail(intScan(&index, 25, GT, 40, LT), 0)
+  checkPassFail(intScan(&index, 20, GTE, 35, LTE), 0)
+  checkPassFail(intScan(&index, -3, GT, 3, LT), 0)
+  checkPassFail(intScan(&index, 996, GT, 1001, LT), 0)
+  checkPassFail(intScan(&index, 0, GT, 1, LT), 0)
+  checkPassFail(intScan(&index, 300, GT, 400, LT), 0)
+  checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 0)
+   
 }
 
 int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)
@@ -433,6 +513,33 @@ int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operato
 
 	return numResults;
 }
+
+// -----------------------------------------------------------------------------
+// indexTests
+// -----------------------------------------------------------------------------
+
+void indexOutOfBoundTests(){
+	intTestOutOfBounds();
+    try
+	{
+      std::cout << "try to remove: " << intIndexName << "\n";
+      File::remove(intIndexName);
+    }
+    catch (FileNotFoundException e) {
+
+	}  
+}
+
+void indexEmptyTests(){
+    intEmptyTreeTests();
+    try{
+      File::remove(intIndexName);
+	  }
+    catch (FileNotFoundException e){
+  }  
+}
+
+
 
 // -----------------------------------------------------------------------------
 // errorTests
