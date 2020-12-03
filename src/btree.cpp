@@ -120,104 +120,110 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
  	struct LeafNodeInt* node = (struct LeafNodeInt*)(currPage);
 	PageKeyPair<int> pair;
 
-		int tempKey = *((int*)key);
-		RecordId tempRid = rid;
-		//search array for appropriate slot to insert
-		for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
-			
-			//empty slot, insert return
-			if (node->ridArray[i].page_number == Page::INVALID_NUMBER) 
-			{
-				node->keyArray[i] = tempKey;
-				node->ridArray[i] = tempRid;
-				break;
-			}
-			
-			//non-empy slot, keep searching
-			else if (node->keyArray[i] < tempKey)
-				continue;
-			
-			//non-empty slot, replace and shift
-			else if (node->keyArray[i] > tempKey)
-			{
-				int tempKey2 = node->keyArray[i];
-				RecordId tempRid2 = node->ridArray[i];
-				node->keyArray[i] = tempKey;
-				node->ridArray[i] = tempRid;
-				tempKey = tempKey2;
-				tempRid = tempRid2;
-			}
-		}
-		if /*full*/(node->ridArray[INTARRAYLEAFSIZE-1].page_number != Page::INVALID_NUMBER)
+
+	//leaf start out not full	
+	int tempKey = *((int*)key);
+	RecordId tempRid = rid;
+	
+	//search array for appropriate slot to insert
+	for(int i = 0; i < INTARRAYLEAFSIZE; i++) {
+		
+		//empty slot, insert return
+		if (node->ridArray[i].page_number == Page::INVALID_NUMBER) 
 		{
-			//perform split
-			Page* high;
-			PageId highId;
-			std::cout<<"Splitting leaf: "<< pid<<std::endl;
-		
-			//alloc and initialized new page
-			bufMgr->allocPage(file, highId, high);
-			struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
-			highNode->type = LEAF;
-			std::cout<<"New leaf: "<< highId<<std::endl;
-		
-			//set sibling pointer
-			highNode->rightSibPageNo = node->rightSibPageNo;
-			node->rightSibPageNo = highId;
+			node->keyArray[i] = tempKey;
+			node->ridArray[i] = tempRid;
+			break;
+		}
 			
-			//default record values
-			for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
-			{	
-				highNode->ridArray[i].page_number = Page::INVALID_NUMBER;
-				highNode->ridArray[i].slot_number = Page::INVALID_SLOT;
-			}
+		//non-empy slot, keep searching
+		else if (node->keyArray[i] < tempKey)
+			continue;
 		
-			//find median and split the array into low and high
-			int median = node->keyArray[INTARRAYLEAFSIZE/2];
-
-			for (size_t i = 0, j = 0; i < INTARRAYLEAFSIZE; i++)
-			{	
-				//below or equal median value do nothing
-				if(node->keyArray[i] < median) 
-				{
-					continue;
-				}
-				//higher than median, copy value into high node array
-				//then set low node value to default value
-				else if(node->keyArray[i] >= median)
-				{
-					highNode->keyArray[j] = node->keyArray[i];
-					highNode->ridArray[j] = node->ridArray[i];
-					node->ridArray[i].page_number = Page::INVALID_NUMBER;
-					node->ridArray[i].slot_number = Page::INVALID_SLOT;
-					node->keyArray[i] = 0;
-					j++;
-				}
-			}
-
-			pair.set(highId, median);
-			bufMgr->unPinPage(file,pid,true);
-			bufMgr->unPinPage(file,highId,true);
-			int i = 0;
-			while(node->ridArray[i].page_number != Page::INVALID_NUMBER)
+		//non-empty slot, replace and shift
+		else if (node->keyArray[i] > tempKey)
+		{
+			int tempKey2 = node->keyArray[i];
+			RecordId tempRid2 = node->ridArray[i];
+			node->keyArray[i] = tempKey;
+			node->ridArray[i] = tempRid;
+			tempKey = tempKey2;
+			tempRid = tempRid2;
+		}
+	}
+	//check if after the insert if the leaf is full or not
+	if /*full*/(node->ridArray[INTARRAYLEAFSIZE-1].page_number != Page::INVALID_NUMBER)
+	{
+		//immediately perform split
+		Page* high;
+		PageId highId;
+		std::cout<<"Splitting leaf: "<< pid<<std::endl;
+	
+		//alloc and initialized new page
+		bufMgr->allocPage(file, highId, high);
+		struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
+		highNode->type = LEAF;
+		std::cout<<"New leaf: "<< highId<<std::endl;
+	
+		//set sibling pointer
+		highNode->rightSibPageNo = node->rightSibPageNo;
+		node->rightSibPageNo = highId;
+		
+		//default record values
+		for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
+		{	
+			highNode->ridArray[i].page_number = Page::INVALID_NUMBER;
+			highNode->ridArray[i].slot_number = Page::INVALID_SLOT;
+		}
+	
+		//find median and split the array into low and high
+		int median = node->keyArray[INTARRAYLEAFSIZE/2];
+		
+		//loop over the full array, copying high values into new node
+		//and setting the higher low values to default after copying to new node
+		for (size_t i = 0, j = 0; i < INTARRAYLEAFSIZE; i++)
+		{	
+			//below or equal median value do nothing
+			if(node->keyArray[i] < median) 
 			{
-				i++;
+				continue;
 			}
-			int j = 0;
-			while(highNode->ridArray[j].page_number != Page::INVALID_NUMBER)
+			//higher than median, copy value into high node array
+			//then set low node value to default value
+			else if(node->keyArray[i] >= median)
 			{
+				highNode->keyArray[j] = node->keyArray[i];
+				highNode->ridArray[j] = node->ridArray[i];
+				node->ridArray[i].page_number = Page::INVALID_NUMBER;
+				node->ridArray[i].slot_number = Page::INVALID_SLOT;
+				node->keyArray[i] = 0;
 				j++;
 			}
-			std::cout<<"pageNo: "<<pid<<" low values: "<<node->keyArray[0]<<" - "<<node->keyArray[i-1] <<" median: " <<median<<" NewPid: "<<highId<<" high values: "<< highNode->keyArray[0]<<" - "<<highNode->keyArray[j-1]<<std::endl;
-			return pair;			
 		}
-		else/* not full*/
+		
+		pair.set(highId, median);
+		bufMgr->unPinPage(file,pid,true);
+		bufMgr->unPinPage(file,highId,true);
+		int i = 0;
+		while(node->ridArray[i].page_number != Page::INVALID_NUMBER)
 		{
-			//return
-			pair.set(Page::INVALID_NUMBER, -1);
-			bufMgr->unPinPage(file, pid, true);
-			return pair;
-		}	
+			i++;
+		}
+		int j = 0;
+		while(highNode->ridArray[j].page_number != Page::INVALID_NUMBER)
+		{
+			j++;
+		}
+		std::cout<<"pageNo: "<<pid<<" low values: "<<node->keyArray[0]<<" - "<<node->keyArray[i-1] <<" median: " <<median<<" NewPid: "<<highId<<" high values: "<< highNode->keyArray[0]<<" - "<<highNode->keyArray[j-1]<<std::endl;
+		return pair;			
+	}
+	else/* not full*/
+	{
+		//return
+		pair.set(Page::INVALID_NUMBER, -1);
+		bufMgr->unPinPage(file, pid, true);
+		return pair;
+	}	
 }
 
 PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, PageId pid) 
