@@ -270,50 +270,47 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 	{
 		return pair;
 	}
-	else/*split*/
+	else/*split occured*/
 	{
-		if /*not full*/(node->pageNoArray[INTARRAYNONLEAFSIZE] == Page::INVALID_NUMBER)
+		int tempKey = pair.key;
+		PageId tempPid = pair.pageNo;
+		std::cout<<" Page: "<< tempPid<<" Insert Key: "<<tempKey<<std::endl;
+		for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 		{
-			int tempKey = pair.key;
-			PageId tempPid = pair.pageNo;
-			std::cout<<" Page: "<< tempPid<<" Insert Key: "<<tempKey<<std::endl;
-			for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
+			//empty slot, insert return
+			if (node->keyArray[i] == 0)
 			{
-				//empty slot, insert return
-				if (node->keyArray[i] == 0)
+				node->keyArray[i] = tempKey;
+				node->pageNoArray[i+1] = tempPid;
+				pair.set(Page::INVALID_NUMBER, -1);
+				bufMgr->unPinPage(file,pid,true);
+				std::cout<<"Non leaf array"<<std::endl;
+				for (size_t i = 0; i < 16; i++)
 				{
-					node->keyArray[i] = tempKey;
-					node->pageNoArray[i+1] = tempPid;
-					pair.set(Page::INVALID_NUMBER, -1);
-					bufMgr->unPinPage(file,pid,true);
-					std::cout<<"Non leaf array"<<std::endl;
-					for (size_t i = 0; i < 16; i++)
-					{
-						std::cout<<" PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
-					}
-					return pair;
+					std::cout<<" PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
 				}
-				//non-empty keep searching
-				else if (node->keyArray[i] < tempKey)
-					continue;
-				
-				//non-empty, insert and shift
-				else if(node->keyArray[i] > tempKey)
-				{
-					int tempKey2 = node->keyArray[i];
-					PageId tempPid2 = node->pageNoArray[i+1];
-					node->keyArray[i]= tempKey;
-					node->pageNoArray[i+1]=tempPid;
-					tempKey = tempKey2;
-					tempPid = tempPid2;
-				}
-				
+				return pair;
+			}
+			//non-empty keep searching
+			else if (node->keyArray[i] < tempKey)
+				continue;
+			
+			//non-empty, insert and shift
+			else if(node->keyArray[i] > tempKey)
+			{
+				int tempKey2 = node->keyArray[i];
+				PageId tempPid2 = node->pageNoArray[i+1];
+				node->keyArray[i]= tempKey;
+				node->pageNoArray[i+1]=tempPid;
+				tempKey = tempKey2;
+				tempPid = tempPid2;
 			}
 			
 		}
-		else/*full, split again and return*/
-		{
 			
+		if/*full, split again*/(node->pageNoArray[INTARRAYNONLEAFSIZE] == Page::INVALID_NUMBER)
+		{
+		
 		}
 	}
 }

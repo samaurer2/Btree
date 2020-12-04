@@ -68,7 +68,7 @@ void createRelationForward();
 void createRelationBackward();
 void createRelationRandom();
 void createRelationForwardLarge();
-void createRelationBackwardLarge()
+void createRelationBackwardLarge();
 void createRelationForwardZeroTuples();
 void intEmptyTreeTest();
 void indexEmptyTests();
@@ -145,10 +145,10 @@ int main(int argc, char **argv)
 	File::remove(relationName);
 
 	//test1();
-	test2();
+	//test2();
 	test3();
-  test4();
-  test5();
+  	test4();
+  	test5();
 	errorTests();
 
 	delete bufMgr;
@@ -205,7 +205,7 @@ void test4()
   std::cout << "\nTest 4 passed\n" << std::endl;
 }
 
-void test2()
+void test5()
 {
 	// Create a relation with tuples valued 0 to relationSize in reverse order and perform index tests 
 	// on attributes of all three types (int, double, string)
@@ -455,7 +455,7 @@ void createRelationForwardLarge()
 // createRelationBackwardLarge
 // -----------------------------------------------------------------------------
 
-void createRelationBackward()
+void createRelationBackwardLarge()
 {
   // destroy any old copies of relation file
 	try
