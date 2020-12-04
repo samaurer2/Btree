@@ -463,8 +463,7 @@ void BTreeIndex::startScan(const void* lowValParm,
         throw BadScanrangeException();
   }
   
-  if (lowOpParm == LT || lowOpParm == LTE) ||
-        (highOpParm == GT || highOpParm == GTE)) {
+  if ((lowOpParm == LT || lowOpParm == LTE) || (highOpParm == GT || highOpParm == GTE)) {
         throw BadOpcodesException();
   }
   
@@ -497,8 +496,6 @@ void BTreeIndex::startScan(const void* lowValParm,
 	}	
 	throw NoSuchKeyFoundException();
 	 
-
-
 }
 
 // -----------------------------------------------------------------------------
