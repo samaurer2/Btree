@@ -268,7 +268,6 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 	//check if low level split occured
 	if /*no split*/(pair.pageNo == Page::INVALID_NUMBER)
 	{
-		//bufMgr->unPinPage(file, pid, false);
 		return pair;
 	}
 	else/*split*/
@@ -277,7 +276,7 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 		{
 			int tempKey = pair.key;
 			PageId tempPid = pair.pageNo;
-			std::cout<<"Insert Key: "<<tempKey<<" Page: "<< tempPid<<std::endl;
+			std::cout<<" Page: "<< tempPid<<" Insert Key: "<<tempKey<<std::endl;
 			for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 			{
 				//empty slot, insert return
@@ -302,12 +301,11 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 				else if(node->keyArray[i] > tempKey)
 				{
 					int tempKey2 = node->keyArray[i];
-					PageId tempPid2 = node->pageNoArray[i];
+					PageId tempPid2 = node->pageNoArray[i+1];
 					node->keyArray[i]= tempKey;
-					node->pageNoArray[i]=tempPid;
+					node->pageNoArray[i+1]=tempPid;
 					tempKey = tempKey2;
 					tempPid = tempPid2;
-
 				}
 				
 			}
