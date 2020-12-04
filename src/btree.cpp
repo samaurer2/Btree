@@ -339,14 +339,23 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			std::cout<<"PushUpVal: "<<pushUpValue<<std::endl;
 			node->keyArray[medianIndex] = 0;
 			
-			for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
-			{
-				newNode->keyArray[j] = node->keyArray[i];
-				newNode->pageNoArray[j]= node->pageNoArray[i];
-				node->keyArray[i] = 0;
-				node->pageNoArray[i] = Page::INVALID_NUMBER;
-				++j;
-			}
+	//		for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
+		//	{
+	//			newNode->keyArray[j] = node->keyArray[i];
+	//			newNode->pageNoArray[j]= node->pageNoArray[i];
+	//			node->keyArray[i] = 0;
+	//			node->pageNoArray[i] = Page::INVALID_NUMBER;
+		//		++j;
+	//		}
+      
+      for (int i = medianIndex; i < INTARRAYNONLEAFSIZE; i++) {
+        newNode->pageNoArray[i - medianIndex] = node->pageNoArray[i + 1];
+        newNode->keyArray[i - medianIndex] = node->keyArray[i];
+
+        node->pageNoArray[i + 1] = (PageId) 0;
+        node->keyArray[i + 1] = 0;
+      }
+    
 			int i = 0;
 			while((node->pageNoArray[i] != Page::INVALID_NUMBER) || (newNode->pageNoArray[i] != Page::INVALID_NUMBER))
 			{

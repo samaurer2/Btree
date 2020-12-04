@@ -76,7 +76,7 @@ void intTestsLarge();
 void intTestsSingleLarge();
 void indexOutOfBoundTests();
 void indexTestsSingleLarge();
-void intTestOutOfBounds();
+void intTestOutOfBounds
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
 void indexTestsLarge();
