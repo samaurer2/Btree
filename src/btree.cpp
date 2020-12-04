@@ -377,7 +377,12 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		std::cout<<"PageNo: "<<newRootnode->pageNoArray[0]<<" Key: "<< newRootnode->keyArray[0]<<std::endl;
 		std::cout<<"PageNo: "<<newRootnode->pageNoArray[1]<<" Key: "<< newRootnode->keyArray[1]<<std::endl;
 		bufMgr->unPinPage(file, newRootnode->pageNoArray[0], true);
-		std::cout<<"New Root: "<<rootPageNum<<std::endl;	
+		std::cout<<"New Root: "<<rootPageNum<<std::endl;
+		Page* p;
+		bufMgr->readPage(file,newRootnode->pageNoArray[0],p);
+		struct LeafNodeInt* n = (struct LeafNodeInt*)(p);
+		std::cout<<"rightSibPageNo: "<< n->rightSibPageNo<<std::endl;
+		bufMgr->unPinPage(file, newRootnode->pageNoArray[0], false);	
 	}
 	
 }
@@ -464,7 +469,12 @@ void BTreeIndex::scanNext(RecordId& outRid)
 	if (scanExecuting)
 	{
 		struct LeafNodeInt* node = (struct LeafNodeInt*)(currentPageData);
+		if (node->ridArray[nextEntry].page_number == Page::INVALID_NUMBER)
+		{
+			nextEntry = INTARRAYLEAFSIZE;
+		}
 		
+
 		if (nextEntry == INTARRAYLEAFSIZE)
 		{
 			bufMgr->unPinPage(file, currentPageNum, false);
