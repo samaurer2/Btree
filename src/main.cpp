@@ -73,7 +73,9 @@ void createRelationForwardZeroTuples();
 void indexEmptyTests();
 void intTests();
 void intTestsLarge();
+void intTestsSingleLarge();
 void indexOutOfBoundTests();
+void indexTestsSingleLarge();
 void intTestOutOfBounds();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
@@ -83,6 +85,7 @@ void test2();
 void test3();
 void test4();
 void test5();
+void test6();
 void errorTests();
 void deleteRelation();
 
@@ -148,8 +151,9 @@ int main(int argc, char **argv)
 	//test1();
 	//test2();
 	//test3();
-	test4();
-	test5();
+	//test4();
+	//test5();
+  test6();
 	errorTests();
 
 	delete bufMgr;
@@ -216,7 +220,18 @@ void test5()
 	indexTests();
 	deleteRelation();
   std::cout << "\nTest 5 passed\n" << std::endl;
- 
+}
+
+void test6()
+{
+	// Create a relation with tuples valued 0 to relationSize and perform index tests 
+	// on attributes of all three types (int, double, string)
+	std::cout << "---------------------" << std::endl;
+	std::cout << "createSingleLargeRelation" << std::endl;
+	createRelationForwardLarge();
+	indexTestsSingleLarge();
+	deleteRelation();
+  std::cout << "\nTest 6 passed\n" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
@@ -527,6 +542,18 @@ void indexTestsLarge()
   }
 }
 
+void indexTestsSingleLarge()
+{
+  intTestsSingleLarge();
+	try
+	{
+		File::remove(intIndexName);
+	}
+  catch(const FileNotFoundException &e)
+  {
+  }
+}
+
 void intTestOutOfBounds() {
   std::cout << "Create a B+ Tree index on the integer field" << std::endl;
   BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i), INTEGER);
@@ -566,6 +593,15 @@ void intTestsLarge()
 	checkPassFail(intScan(&index,300000,GT,400000,LT), 99000)
 	checkPassFail(intScan(&index,3000000,GTE,4000000,LT), 1000000)
    
+}
+
+void intTestsSingleLarge()
+{
+  std::cout << "Create a B+ Tree index on the  integer field" << std::endl;
+  BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
+
+  // Run Single Test
+	checkPassFail(intScan(&index,400000,GTE,400000,LTE), 1);
 }
 
 int intScan(BTreeIndex * index, int lowVal, Operator lowOp, int highVal, Operator highOp)
