@@ -166,13 +166,16 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		//immediately perform split
 		Page* high;
 		PageId highId;
-		std::cout<<"Splitting leaf: "<< pid<<std::endl;
-	
 		//alloc and initialized new page
 		bufMgr->allocPage(file, highId, high);
 		struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
 		highNode->type = LEAF;
-		std::cout<<"New leaf: "<< highId<<std::endl;
+		// if (pid < 5000)
+		// {
+		// std::cout<<"Splitting leaf: "<< pid<<std::endl;
+		// std::cout<<"New leaf: "<< highId<<std::endl;	
+		// }
+		
 	
 		//set sibling pointer
 		highNode->rightSibPageNo = node->rightSibPageNo;
@@ -213,17 +216,17 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		pair.set(highId, median);
 		bufMgr->unPinPage(file,pid,true);
 		bufMgr->unPinPage(file,highId,true);
-		int i = 0;
-		while(node->ridArray[i].page_number != Page::INVALID_NUMBER)
-		{
-			i++;
-		}
-		int j = 0;
-		while(highNode->ridArray[j].page_number != Page::INVALID_NUMBER)
-		{
-			j++;
-		}
-		std::cout<<"pageNo: "<<pid<<" low values: "<<node->keyArray[0]<<" - "<<node->keyArray[i-1] <<" median: " <<median<<" NewPid: "<<highId<<" high values: "<< highNode->keyArray[0]<<" - "<<highNode->keyArray[j-1]<<std::endl;
+		// int i = 0;
+		// while(node->ridArray[i].page_number != Page::INVALID_NUMBER)
+		// {
+		// 	i++;
+		// }
+		// int j = 0;
+		// while(highNode->ridArray[j].page_number != Page::INVALID_NUMBER)
+		// {
+		// 	j++;
+		// }
+		// std::cout<<"pageNo: "<<pid<<" low values: "<<node->keyArray[0]<<" - "<<node->keyArray[i-1] <<" median: " <<median<<" NewPid: "<<highId<<" high values: "<< highNode->keyArray[0]<<" - "<<highNode->keyArray[j-1]<<std::endl;
 		return pair;			
 	}
 	else/* not full*/
@@ -331,17 +334,27 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			
 			int medianIndex = INTARRAYNONLEAFSIZE/2;
 			int pushUpValue = node->keyArray[medianIndex];
+			std::cout<<"NewPAgeNo: "<<newId<<std::endl;
+			std::cout<<"MedianIndex: "<<medianIndex<<std::endl;
+			std::cout<<"PushUpVal: "<<pushUpValue<<std::endl;
 			node->keyArray[medianIndex] = 0;
 			
 			for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
 			{
 				newNode->keyArray[j] = node->keyArray[i];
-				newNode->pageNoArray[j]= node->keyArray[i];
+				newNode->pageNoArray[j]= node->pageNoArray[i];
 				node->keyArray[i] = 0;
 				node->pageNoArray[i] = Page::INVALID_NUMBER;
 				++j;
 			}
+			int i = 0;
+			while((node->pageNoArray[i] != Page::INVALID_NUMBER) || (newNode->pageNoArray[i] != Page::INVALID_NUMBER))
+			{
+				std::cout<<"LowKey: "<< node->keyArray[i]<<" LowPage: "<<node->pageNoArray[i]<<" HighKey: "<< newNode->keyArray[i]<<" HighPage: "<<newNode->pageNoArray[i]<<std::endl;
+				i++;
+			}
 			newNode->level = node->level;
+			newNode->type = node->type;
 			pair.set(newId, pushUpValue);
 			bufMgr->unPinPage(file, pid, true);
 			bufMgr->unPinPage(file, newId, true);
@@ -405,15 +418,7 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		newRootnode->pageNoArray[0] = rootPageNum;
 		newRootnode->pageNoArray[1]= pair.pageNo;
 		rootPageNum = newRootId;
-		std::cout<<"PageNo: "<<newRootnode->pageNoArray[0]<<" Key: "<< newRootnode->keyArray[0]<<std::endl;
-		std::cout<<"PageNo: "<<newRootnode->pageNoArray[1]<<" Key: "<< newRootnode->keyArray[1]<<std::endl;
 		bufMgr->unPinPage(file, newRootnode->pageNoArray[0], true);
-		std::cout<<"New Root: "<<rootPageNum<<std::endl;
-		Page* p;
-		bufMgr->readPage(file,newRootnode->pageNoArray[0],p);
-		struct LeafNodeInt* n = (struct LeafNodeInt*)(p);
-		std::cout<<"rightSibPageNo: "<< n->rightSibPageNo<<std::endl;
-		bufMgr->unPinPage(file, newRootnode->pageNoArray[0], false);	
 	}
 	
 }
