@@ -62,8 +62,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 	} else {
 		
 		//open new Blobfile
-		file = new BlobFile(outIndexName, true);		
-		
+		file = new BlobFile(outIndexName, true);
 		//IndexMetaInfo page
 		bufMgrIn->allocPage(file, id, page);
 		std::cout << "Alloc Page IndexMetaInfo: " << id<<std::endl;
@@ -90,9 +89,13 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				insertEntry(&key, scanRid);
 				dex->rootPageNo = rootPageNum;	
 			}
+			
+			bufMgr->unPinPage(file,headerPageNum, true);
 		}
 		catch(const EndOfFileException &e)
 		{
+			std::cout << "IndexMetaInfo Page: " << headerPageNum<<std::endl;
+			std::cout << "rootPageNum: " << rootPageNum<<std::endl;
 			std::cout << "End Constructor" << std::endl;
 		}
 
@@ -110,7 +113,7 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-  bufMgr->unPinPage(file, currentPageNum, false);
+  //bufMgr->unPinPage(file, currentPageNum, false);
 
   bufMgr->flushFile(file);
   delete file;
@@ -168,14 +171,9 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		PageId highId;
 		//alloc and initialized new page
 		bufMgr->allocPage(file, highId, high);
+		//std::cout<<"Split leaf: "<< pid;
 		struct LeafNodeInt* highNode = (struct LeafNodeInt*)(high);
-		highNode->type = LEAF;
-		// if (pid < 5000)
-		// {
-		// std::cout<<"Splitting leaf: "<< pid<<std::endl;
-		// std::cout<<"New leaf: "<< highId<<std::endl;	
-		// }
-		
+		highNode->type = LEAF;		
 	
 		//set sibling pointer
 		highNode->rightSibPageNo = node->rightSibPageNo;
@@ -214,6 +212,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		}
 		
 		pair.set(highId, median);
+		//std::cout<<" New page: "<<highId<<"median: "<<median;
 		bufMgr->unPinPage(file,pid,true);
 		bufMgr->unPinPage(file,highId,true);
 		// int i = 0;
@@ -286,7 +285,7 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 	{
 		int tempKey = pair.key;
 		PageId tempPid = pair.pageNo;
-		std::cout<<" Page: "<< tempPid<<" Insert Key: "<<tempKey<<std::endl;
+		//std::cout<<" Insert Key Internally: "<<tempKey;
 		for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 		{
 			//empty slot, insert return
@@ -297,11 +296,11 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 				pair.set(Page::INVALID_NUMBER, -1);
 				bufMgr->unPinPage(file,pid,true);
 				// std::cout<<"Non leaf array"<<std::endl;
-				// for (size_t i = 0; i < 16; i++)
+				// for (size_t i = 0; i < 2; i++)
 				// {
-				// 	std::cout<<" PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
+				// 	std::cout<<"PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
 				// }
-				return pair;
+				break;
 			}
 			//non-empty keep searching
 			else if (node->keyArray[i] < tempKey)
@@ -319,9 +318,16 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			}
 			
 		}
-			
+		//std::cout<<" check is full: "<<node->keyArray[INTARRAYNONLEAFSIZE-1]<<" , "<<node->pageNoArray[INTARRAYNONLEAFSIZE]<<std::endl;	
 		if/*full, split again*/(node->pageNoArray[INTARRAYNONLEAFSIZE] != Page::INVALID_NUMBER)
 		{
+			//std::cout<<" Array Full"<<std::endl;
+			int j = 0;
+			while((node->pageNoArray[j] != Page::INVALID_NUMBER))
+			{
+				std::cout<<"("<<node->keyArray[j]<<", "<<node->pageNoArray[j]<<") ";
+				j++;
+			}
 			Page* newPage;
 			PageId newId;
 			bufMgr->allocPage(file, newId, newPage);
@@ -337,16 +343,41 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			std::cout<<"NewPAgeNo: "<<newId<<std::endl;
 			std::cout<<"MedianIndex: "<<medianIndex<<std::endl;
 			std::cout<<"PushUpVal: "<<pushUpValue<<std::endl;
-			node->keyArray[medianIndex] = 0;
 			
-			for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
+			for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
 			{
-				newNode->keyArray[j] = node->keyArray[i];
-				newNode->pageNoArray[j]= node->pageNoArray[i];
-				node->keyArray[i] = 0;
-				node->pageNoArray[i] = Page::INVALID_NUMBER;
-				++j;
-			}
+				if (node->keyArray[i]< pushUpValue)
+					continue;
+				
+				else if(node->keyArray[i] == pushUpValue)
+				{
+					node->keyArray[i] = 0;
+				}
+				else if(node->keyArray[i] > pushUpValue)
+				{
+					newNode->keyArray[j] = node->keyArray[i];
+					newNode->pageNoArray[j]= node->pageNoArray[i];
+					node->keyArray[i] = 0;
+					node->pageNoArray[i] = Page::INVALID_NUMBER;
+					j++;
+				}
+				else if (i == INTARRAYNONLEAFSIZE)
+				{
+					newNode->pageNoArray[j] = node->pageNoArray[i];
+					node->pageNoArray[i] = Page::INVALID_NUMBER;
+				}
+				
+
+			}			
+			// for (int i = medianIndex; i < INTARRAYNONLEAFSIZE; i++) 
+			// {
+       		// 	newNode->pageNoArray[i - medianIndex] = node->pageNoArray[i + 1];
+        	// 	newNode->keyArray[i - medianIndex] = node->keyArray[i];
+
+       		// 	node->pageNoArray[i + 1] = Page::INVALID_NUMBER;
+        	// 	node->keyArray[i + 1] = 0;
+      		// }
+			
 			int i = 0;
 			while((node->pageNoArray[i] != Page::INVALID_NUMBER) || (newNode->pageNoArray[i] != Page::INVALID_NUMBER))
 			{
