@@ -42,7 +42,7 @@ using namespace badgerdb;
 const std::string relationName = "relA";
 //If the relation size is changed then the second parameter 2 chechPassFail may need to be changed to number of record that are expected to be found during the scan, else tests will erroneously be reported to have failed.
 const int	relationSize = 5000;
-const int largeRelationSize = 100000;
+const int largeRelationSize = 1000000;
 std::string intIndexName, doubleIndexName, stringIndexName;
 
 // This is the structure for tuples in the base relation
@@ -70,13 +70,14 @@ void createRelationRandom();
 void createRelationForwardLarge();
 void createRelationBackwardLarge();
 void createRelationForwardZeroTuples();
-void intEmptyTreeTest();
 void indexEmptyTests();
 void intTests();
+void intTestsLarge();
 void indexOutOfBoundTests();
 void intTestOutOfBounds();
 int intScan(BTreeIndex *index, int lowVal, Operator lowOp, int highVal, Operator highOp);
 void indexTests();
+void indexTestsLarge();
 void test1();
 void test2();
 void test3();
@@ -146,9 +147,9 @@ int main(int argc, char **argv)
 
 	//test1();
 	//test2();
-	test3();
-  	test4();
-  	test5();
+	//test3();
+	test4();
+	test5();
 	errorTests();
 
 	delete bufMgr;
@@ -200,7 +201,7 @@ void test4()
 	std::cout << "---------------------" << std::endl;
 	std::cout << "createRelationForwardLarge" << std::endl;
 	createRelationForwardLarge();
-	indexTests();
+	indexTestsLarge();
 	deleteRelation();
   std::cout << "\nTest 4 passed\n" << std::endl;
 }
@@ -514,6 +515,18 @@ void indexTests()
   }
 }
 
+void indexTestsLarge()
+{
+  intTestsLarge();
+	try
+	{
+		File::remove(intIndexName);
+	}
+  catch(const FileNotFoundException &e)
+  {
+  }
+}
+
 void intTestOutOfBounds() {
   std::cout << "Create a B+ Tree index on the integer field" << std::endl;
   BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple, i), INTEGER);
@@ -539,19 +552,19 @@ void intTests()
 	checkPassFail(intScan(&index,3000,GTE,4000,LT), 1000)
 }
 
-void intEmptyTreeTests()
+void intTestsLarge()
 {
   std::cout << "Create a B+ Tree index on the  integer field" << std::endl;
   BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
 
   // run some tests
-  checkPassFail(intScan(&index, 25, GT, 40, LT), 0)
-  checkPassFail(intScan(&index, 20, GTE, 35, LTE), 0)
-  checkPassFail(intScan(&index, -3, GT, 3, LT), 0)
-  checkPassFail(intScan(&index, 996, GT, 1001, LT), 0)
-  checkPassFail(intScan(&index, 0, GT, 1, LT), 0)
-  checkPassFail(intScan(&index, 300, GT, 400, LT), 0)
-  checkPassFail(intScan(&index, 3000, GTE, 4000, LT), 0)
+	checkPassFail(intScan(&index,25,GT,40,LT), 14)
+	checkPassFail(intScan(&index,200,GTE,350,LTE), 160)
+	checkPassFail(intScan(&index,-3000,GT,3000,LT), 3000)
+	checkPassFail(intScan(&index,99600,GT,100100,LT), 400)
+	checkPassFail(intScan(&index,0,GT,1,LT), 0)
+	checkPassFail(intScan(&index,300000,GT,400000,LT), 99000)
+	checkPassFail(intScan(&index,3000000,GTE,4000000,LT), 1000000)
    
 }
 
@@ -630,17 +643,6 @@ void indexOutOfBoundTests(){
 
 	}  
 }
-
-void indexEmptyTests(){
-    intEmptyTreeTests();
-    try{
-      File::remove(intIndexName);
-	  }
-    catch (FileNotFoundException e){
-  }  
-}
-
-
 
 // -----------------------------------------------------------------------------
 // errorTests
