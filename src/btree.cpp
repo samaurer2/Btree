@@ -459,6 +459,15 @@ void BTreeIndex::startScan(const void* lowValParm,
 				   const void* highValParm,
 				   const Operator highOpParm)
 {
+  if (*(int *)lowValParm > *(int *)highValParm) {
+        throw BadScanrangeException();
+  }
+  
+  if (lowOpParm == LT || lowOpParm == LTE) ||
+        (highOpParm == GT || highOpParm == GTE)) {
+        throw BadOpcodesException();
+  }
+  
 	lowOp = lowOpParm;
 	highOp = highOpParm;
 	lowValInt = *((int*)lowValParm);
