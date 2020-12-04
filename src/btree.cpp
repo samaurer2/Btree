@@ -110,7 +110,13 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-  bufMgr->unPinPage(file, currentPageNum, false);
+  for(size_t i = 0; i < INTARRAYNONLEAFSIZE; i++){
+  	try{
+  		bufMgr->unPinPage(file, currentPageNum, false);
+  	}
+  	catch(PageNotPinnedException e){}
+  }
+  
 
   bufMgr->flushFile(file);
   delete file;
