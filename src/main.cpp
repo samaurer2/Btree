@@ -148,11 +148,11 @@ int main(int argc, char **argv)
 
 	File::remove(relationName);
 
-	//test1();
-	//test2();
-	//test3();
+	test1();
+	test2();
+	test3();
 	//test4();
-	test5();
+	//test5();
     //test6();
 	errorTests();
 
