@@ -113,17 +113,13 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-<<<<<<< HEAD
-  //bufMgr->unPinPage(file, currentPageNum, false);
-=======
   for(size_t i = 0; i < INTARRAYNONLEAFSIZE; i++){
   	try{
   		bufMgr->unPinPage(file, currentPageNum, false);
   	}
   	catch(PageNotPinnedException e){}
   }
-  
->>>>>>> a9e335919a2851ca83c01b6c20cc98455d53f1a5
+
 
   bufMgr->flushFile(file);
   delete file;
@@ -353,9 +349,9 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			std::cout<<"NewPAgeNo: "<<newId<<std::endl;
 			std::cout<<"MedianIndex: "<<medianIndex<<std::endl;
 			std::cout<<"PushUpVal: "<<pushUpValue<<std::endl;
+
 			
-<<<<<<< HEAD
-			for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
+		for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
 			{
 				if (node->keyArray[i]< pushUpValue)
 					continue;
@@ -388,26 +384,6 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
        		// 	node->pageNoArray[i + 1] = Page::INVALID_NUMBER;
         	// 	node->keyArray[i + 1] = 0;
       		// }
-			
-=======
-	//		for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
-		//	{
-	//			newNode->keyArray[j] = node->keyArray[i];
-	//			newNode->pageNoArray[j]= node->pageNoArray[i];
-	//			node->keyArray[i] = 0;
-	//			node->pageNoArray[i] = Page::INVALID_NUMBER;
-		//		++j;
-	//		}
-      
-      for (int i = medianIndex; i < INTARRAYNONLEAFSIZE; i++) {
-        newNode->pageNoArray[i - medianIndex] = node->pageNoArray[i + 1];
-        newNode->keyArray[i - medianIndex] = node->keyArray[i];
-
-        node->pageNoArray[i + 1] = (PageId) 0;
-        node->keyArray[i + 1] = 0;
-      }
-    
->>>>>>> a9e335919a2851ca83c01b6c20cc98455d53f1a5
 			int i = 0;
 			while((node->pageNoArray[i] != Page::INVALID_NUMBER) || (newNode->pageNoArray[i] != Page::INVALID_NUMBER))
 			{
