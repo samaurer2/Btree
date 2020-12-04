@@ -151,8 +151,8 @@ int main(int argc, char **argv)
 	//test1();
 	//test2();
 	//test3();
-	test4();
-	//test5();
+	//test4();
+	test5();
     //test6();
 	errorTests();
 
@@ -217,7 +217,7 @@ void test5()
 	std::cout << "----------------------" << std::endl;
 	std::cout << "createRelationBackward" << std::endl;
 	createRelationBackwardLarge();
-	indexTests();
+	indexTestsLarge();
 	deleteRelation();
   std::cout << "\nTest 5 passed\n" << std::endl;
 }
