@@ -118,7 +118,9 @@ BTreeIndex::~BTreeIndex()
   	try{
   		bufMgr->unPinPage(file, currentPageNum, false);
   	}
-  	catch(const PageNotPinnedException &e){}
+  	catch(const PageNotPinnedException &e){
+		  continue;
+	  }
   }
 
   bufMgr->flushFile(file);
@@ -352,7 +354,12 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			
 			for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
 			{
-				if (node->keyArray[i]< pushUpValue)
+				if (i == INTARRAYNONLEAFSIZE)
+				{
+					newNode->pageNoArray[j] = node->pageNoArray[i];
+					node->pageNoArray[i] = Page::INVALID_NUMBER;
+				}			
+				else if (node->keyArray[i]< pushUpValue)
 					continue;
 				
 				else if(node->keyArray[i] == pushUpValue)
@@ -367,11 +374,6 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 					node->pageNoArray[i] = Page::INVALID_NUMBER;
 					j++;
 				}
-				else if (i == INTARRAYNONLEAFSIZE)
-				{
-					newNode->pageNoArray[j] = node->pageNoArray[i];
-					node->pageNoArray[i] = Page::INVALID_NUMBER;
-				}			
 
 
 			}		
@@ -546,6 +548,7 @@ void BTreeIndex::scanNext(RecordId& outRid)
 			if (node->rightSibPageNo != Page::INVALID_NUMBER)
 			{
 				bufMgr->readPage(file,node->rightSibPageNo, currentPageData);
+				std::cout<<"current page: "<<currentPageNum<<" next page: "<< node->rightSibPageNo<<std::endl;
 				currentPageNum = node->rightSibPageNo;
 				nextEntry = 0;				
 			}
