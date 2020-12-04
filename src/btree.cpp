@@ -317,9 +317,37 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			
 		}
 			
-		if/*full, split again*/(node->pageNoArray[INTARRAYNONLEAFSIZE] == Page::INVALID_NUMBER)
+		if/*full, split again*/(node->pageNoArray[INTARRAYNONLEAFSIZE] != Page::INVALID_NUMBER)
 		{
-		
+			Page* newPage;
+			PageId newId;
+			bufMgr->allocPage(file, newId, newPage);
+
+			struct NonLeafNodeInt* newNode = (struct NonLeafNodeInt*)(newPage);
+			for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
+			{
+				newNode->pageNoArray[i] = Page::INVALID_NUMBER;
+			}
+			
+			int medianIndex = INTARRAYNONLEAFSIZE/2;
+			//                                         6
+			// 0 1 2 3 4 5						 0 1 2	 0 1 2	
+			// 2 4 6 8 10        0 0 0 0 0  >>   2 4     8 10                                     
+			// 1 3 5 7 9 11      0 0 0 0 0 0 >>  1 3 5   7 9 11
+			//
+			int pushUpValue = node->keyArray[medianIndex];
+			node->keyArray[medianIndex] = 0;
+			for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
+			{
+				newNode->keyArray[j] = node->keyArray[i];
+				newNode->pageNoArray[j]= node->keyArray[i];
+				node->keyArray[i] = 0;
+				node->pageNoArray[i] = Page::INVALID_NUMBER;
+				++j;
+			}
+			newNode->level = node->level;
+			pair.set(newId, pushUpValue);
+			return pair;
 		}
 	}
 }
