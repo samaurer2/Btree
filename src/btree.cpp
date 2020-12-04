@@ -293,11 +293,11 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 				node->pageNoArray[i+1] = tempPid;
 				pair.set(Page::INVALID_NUMBER, -1);
 				bufMgr->unPinPage(file,pid,true);
-				std::cout<<"Non leaf array"<<std::endl;
-				for (size_t i = 0; i < 16; i++)
-				{
-					std::cout<<" PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
-				}
+				// std::cout<<"Non leaf array"<<std::endl;
+				// for (size_t i = 0; i < 16; i++)
+				// {
+				// 	std::cout<<" PageNo: "<<node->pageNoArray[i]<<" Key: "<<node->keyArray[i]<<std::endl;
+				// }
 				return pair;
 			}
 			//non-empty keep searching
@@ -330,13 +330,9 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			}
 			
 			int medianIndex = INTARRAYNONLEAFSIZE/2;
-			//                                         6
-			// 0 1 2 3 4 5						 0 1 2	 0 1 2	
-			// 2 4 6 8 10        0 0 0 0 0  >>   2 4     8 10                                     
-			// 1 3 5 7 9 11      0 0 0 0 0 0 >>  1 3 5   7 9 11
-			//
 			int pushUpValue = node->keyArray[medianIndex];
 			node->keyArray[medianIndex] = 0;
+			
 			for (size_t i = medianIndex+1, j = 0; i < INTARRAYNONLEAFSIZE; i++)
 			{
 				newNode->keyArray[j] = node->keyArray[i];
@@ -347,8 +343,11 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			}
 			newNode->level = node->level;
 			pair.set(newId, pushUpValue);
+			bufMgr->unPinPage(file, pid, true);
+			bufMgr->unPinPage(file, newId, true);
 			return pair;
 		}
+		return pair;
 	}
 }
 void BTreeIndex::insertEntry(const void *key, const RecordId rid) 
