@@ -15,6 +15,7 @@
 #include "exceptions/index_scan_completed_exception.h"
 #include "exceptions/file_not_found_exception.h"
 #include "exceptions/end_of_file_exception.h"
+#include "exceptions/page_not_pinned_exception.h"
 
 
 //#define DEBUG
@@ -117,9 +118,8 @@ BTreeIndex::~BTreeIndex()
   	try{
   		bufMgr->unPinPage(file, currentPageNum, false);
   	}
-  	catch(PageNotPinnedException e){}
+  	catch(const PageNotPinnedException &e){}
   }
-
 
   bufMgr->flushFile(file);
   delete file;
@@ -349,9 +349,8 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			std::cout<<"NewPAgeNo: "<<newId<<std::endl;
 			std::cout<<"MedianIndex: "<<medianIndex<<std::endl;
 			std::cout<<"PushUpVal: "<<pushUpValue<<std::endl;
-
 			
-		for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
+			for (size_t i = 0, j = 0; i <=INTARRAYNONLEAFSIZE; i++)
 			{
 				if (node->keyArray[i]< pushUpValue)
 					continue;
@@ -372,18 +371,11 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 				{
 					newNode->pageNoArray[j] = node->pageNoArray[i];
 					node->pageNoArray[i] = Page::INVALID_NUMBER;
-				}
-				
+				}			
 
-			}			
-			// for (int i = medianIndex; i < INTARRAYNONLEAFSIZE; i++) 
-			// {
-       		// 	newNode->pageNoArray[i - medianIndex] = node->pageNoArray[i + 1];
-        	// 	newNode->keyArray[i - medianIndex] = node->keyArray[i];
 
-       		// 	node->pageNoArray[i + 1] = Page::INVALID_NUMBER;
-        	// 	node->keyArray[i + 1] = 0;
-      		// }
+			}		
+			
 			int i = 0;
 			while((node->pageNoArray[i] != Page::INVALID_NUMBER) || (newNode->pageNoArray[i] != Page::INVALID_NUMBER))
 			{
