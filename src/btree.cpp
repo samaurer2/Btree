@@ -54,6 +54,22 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		this->file = &blob;
 		//Unneccessary?? Are the arguements always correct, or is the metadata correct?
 		struct IndexMetaInfo* meta = (struct IndexMetaInfo*) &blob;
+		
+		try
+		{
+			if ((this->attributeType != meta->attrType) || (this->attrByteOffset != meta->attrByteOffset)
+			|| (this->rootPageNum != meta->rootPageNo) || (relationName != meta->relationName))
+			{
+				std::string except;
+				throw BadIndexInfoException(except);
+			}
+			return;
+
+		}
+		catch(BadIndexInfoException &e)
+		{
+			
+		}
 		this->rootPageNum = meta->rootPageNo;
 		this->attrByteOffset = meta->attrByteOffset;
 		this->attributeType = meta->attrType;
@@ -62,15 +78,14 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		bufMgr->readPage(file, file->getFirstPageNo(), page);
 	} 
 	
-	else 
-	{
-		
 		//open new Blobfile
 		file = new BlobFile(outIndexName, true);
+		
 		//IndexMetaInfo page
 		bufMgrIn->allocPage(file, id, page);
 		this->headerPageNum = id;
 		struct IndexMetaInfo* dex = (struct IndexMetaInfo*) (page);
+		
 		//initialize dex fields and btree variables
 		dex->attrByteOffset = attrByteOffset;
 		dex->attrType = attrType;
@@ -96,12 +111,10 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		}
 		catch(const EndOfFileException &e)
 		{
-			bufMgr->printSelf();
 			scanExecuting = false;
 			bufMgr->unPinPage(file,headerPageNum, true);
 		}
 
-	}
 
 }
 
