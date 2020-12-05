@@ -579,6 +579,7 @@ void BTreeIndex::endScan()
 {
 	if (!scanExecuting)
 		throw ScanNotInitializedException();
+	
 	scanExecuting = false;
 	currentPageData = NULL;
 	currentPageNum = Page::INVALID_NUMBER;
