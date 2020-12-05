@@ -549,7 +549,6 @@ void BTreeIndex::scanNext(RecordId& outRid)
 			}
 			else
 			{
-				endScan();
 				throw IndexScanCompletedException();
 			}				
 		}
@@ -561,7 +560,6 @@ void BTreeIndex::scanNext(RecordId& outRid)
 		}
 		else
 		{
-			endScan();
 			throw IndexScanCompletedException();
 		}
 	}
@@ -579,7 +577,6 @@ void BTreeIndex::endScan()
 {
 	if (!scanExecuting)
 		throw ScanNotInitializedException();
-	
 	scanExecuting = false;
 	currentPageData = NULL;
 	currentPageNum = Page::INVALID_NUMBER;
