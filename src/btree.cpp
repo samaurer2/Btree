@@ -549,8 +549,8 @@ void BTreeIndex::scanNext(RecordId& outRid)
 			}
 			else
 			{
-				bufMgr->unPinPage(file,currentPageNum,false);
 				endScan();
+				throw IndexScanCompletedException();
 			}				
 		}
 		if (((highOp == LTE && (node->keyArray[nextEntry] <= highValInt)))
@@ -561,6 +561,7 @@ void BTreeIndex::scanNext(RecordId& outRid)
 		}
 		else
 		{
+			endScan();
 			throw IndexScanCompletedException();
 		}
 	}

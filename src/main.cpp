@@ -153,11 +153,11 @@ int main(int argc, char **argv)
 	test1();
 	test2();
 	test3();
-	//test4();
-	//test5();
+	test4();
+	test5();
 	//test6();
 	//test7();
-  test8();
+	//test8();
 
 	errorTests();
 	delete bufMgr;
@@ -663,7 +663,7 @@ void intTestsLarge()
 	checkPassFail(intScan(&index,-3000,GT,3000,LT), 3000)
 	checkPassFail(intScan(&index,99600,GT,100100,LT), 499)
 	checkPassFail(intScan(&index,0,GT,1,LT), 0)
-	checkPassFail(intScan(&index,300000,GT,400000,LT), 99998)
+	checkPassFail(intScan(&index,300000,GT,400000,LT), 99999)
 	checkPassFail(intScan(&index,300000,GTE,4000000,LT), 200000)
    
 }
