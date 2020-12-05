@@ -86,6 +86,7 @@ void test3();
 void test4();
 void test5();
 void test6();
+void test7();
 void errorTests();
 void deleteRelation();
 
@@ -148,12 +149,13 @@ int main(int argc, char **argv)
 
 	File::remove(relationName);
 
-	test1();
-	test2();
-	test3();
+	//test1();
+	//test2();
+	//test3();
 	//test4();
 	//test5();
-    //test6();
+  //test6();
+  test7();
 	errorTests();
 
 	delete bufMgr;
@@ -232,6 +234,17 @@ void test6()
 	indexTestsSingleLarge();
 	deleteRelation();
   std::cout << "\nTest 6 passed\n" << std::endl;
+}
+
+void test7()
+{
+	// Create a relation with tuples valued 0 to relationSize and perform index tests 
+	// on attributes of all three types (int, double, string)
+	std::cout << "---------------------" << std::endl;
+	std::cout << "CreateThenDelete" << std::endl;
+	createRelationForward();
+	deleteRelation();
+  std::cout << "\nTest 7 passed\n" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
