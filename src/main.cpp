@@ -523,7 +523,7 @@ void createRelationBackwardLarge()
 }
 
 // -----------------------------------------------------------------------------
-// createRelationRandom
+// createRelationRandomLarge
 // -----------------------------------------------------------------------------
 
 void createRelationRandomLarge()
