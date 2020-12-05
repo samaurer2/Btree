@@ -93,14 +93,12 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
 				insertEntry(&key, scanRid);
-				std::cout<<"unpinning page: "<<rootPageNum<<std::endl;
-				bufMgr->unPinPage(file, rootPageNum, true);
-				std::cout<<"unpinning page: "<<rootPageNum<<std::endl;
 				dex->rootPageNo = rootPageNum;
 			}
 		}
 		catch(const EndOfFileException &e)
 		{
+			bufMgr->printSelf();
 			scanExecuting = false;
 			bufMgr->unPinPage(file,headerPageNum, true);
 			std::cout << "IndexMetaInfo Page: " << headerPageNum<<std::endl;
@@ -138,6 +136,7 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 	Page* currPage;
 	
 	bufMgr->readPage(file, pid, currPage);
+	bufMgr->unPinPage(file,pid,true);
  	struct LeafNodeInt* node = (struct LeafNodeInt*)(currPage);
 	PageKeyPair<int> pair;
 
@@ -221,7 +220,6 @@ PageKeyPair<int> BTreeIndex::insertLeaf(const void *key, const RecordId rid, Pag
 		}
 		
 		pair.set(highId, median);
-		bufMgr->unPinPage(file,pid,true);
 		bufMgr->unPinPage(file,highId,true);
 		return pair;			
 	}
@@ -362,6 +360,7 @@ PageKeyPair<int> BTreeIndex::insertNonLeaf(const void *key, const RecordId rid, 
 			bufMgr->unPinPage(file, newId, true);
 			return pair;
 		}
+		
 		bufMgr->unPinPage(file,pid,true);
 		return pair;
 	}
