@@ -68,7 +68,7 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		}
 		catch(BadIndexInfoException &e)
 		{
-			
+
 		}
 		this->rootPageNum = meta->rootPageNo;
 		this->attrByteOffset = meta->attrByteOffset;
