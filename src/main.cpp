@@ -87,6 +87,8 @@ void test4();
 void test5();
 void test6();
 void test7();
+void test8();
+void test9();
 void errorTests();
 void deleteRelation();
 
@@ -149,13 +151,15 @@ int main(int argc, char **argv)
 
 	File::remove(relationName);
 
-	test1();
-	test2();
-	test3();
+	//test1();
+	//test2();
+	//test3();
 	//test4();
 	//test5();
   	//test6();
   	//test7();
+  test8();
+  test9();
 	errorTests();
 	delete bufMgr;
 
@@ -246,6 +250,30 @@ void test7()
 	deleteRelation();
   	std::cout << "\nTest 7 passed\n" << std::endl;
 }
+
+void test8()
+{
+	// Create a relation with tuples valued 0 to relationSize and perform index tests 
+	// on attributes of all three types (int, double, string)
+	std::cout << "---------------------" << std::endl;
+	std::cout << "TestDoesNotDeleteRelation" << std::endl;
+	createRelationForward();
+	indexTests();
+  std::cout << "\nTest 8 Passed\n" << std::endl;
+}
+
+void test9()
+{
+	// Create a relation with tuples valued 0 to relationSize and perform index tests 
+	// on attributes of all three types (int, double, string)
+	std::cout << "---------------------" << std::endl;
+	std::cout << "BadIndexInfoException" << std::endl;
+	createRelationForward();
+	indexTests();
+  deleteRelation();
+  std::cout << "\nTest 9 Passed \n" << std::endl;
+}
+
 
 // -----------------------------------------------------------------------------
 // createZeroRelationForward
