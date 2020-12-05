@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 	//test5();
   	//test6();
   	//test7();
-	//errorTests();
+	errorTests();
 	delete bufMgr;
 
   return 1;
