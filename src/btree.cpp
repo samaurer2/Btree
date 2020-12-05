@@ -86,15 +86,17 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 		FileScan fscan(relationName, bufMgrIn);
 		try {
 			RecordId scanRid;
-			while(true) {
+			while(true) 
+			{
 				fscan.scanNext(scanRid);
 				std::string recordStr = fscan.getRecord();
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
 				insertEntry(&key, scanRid);
+				std::cout<<"unpinning page: "<<rootPageNum<<std::endl;
 				bufMgr->unPinPage(file, rootPageNum, true);
+				std::cout<<"unpinning page: "<<rootPageNum<<std::endl;
 				dex->rootPageNo = rootPageNum;
-
 			}
 		}
 		catch(const EndOfFileException &e)
@@ -389,9 +391,9 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 	
 	if/*root splits*/ (pair.pageNo != Page::INVALID_NUMBER)
 	{	
+		
 		Page* newRoot;
 		PageId newRootId;
-		bufMgr->readPage(file, rootPageNum, root);
 		bufMgr->allocPage(file, newRootId, newRoot);
 		struct NonLeafNodeInt* rootNode = (struct NonLeafNodeInt*)(root);		
 		struct NonLeafNodeInt* newRootnode = (struct NonLeafNodeInt*)(newRoot);
@@ -419,8 +421,9 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 		newRootnode->pageNoArray[0] = rootPageNum;
 		newRootnode->pageNoArray[1]= pair.pageNo;
 		bufMgr->unPinPage(file, rootPageNum, true);
+		std::cout<<"Split Root"<<std::endl;
+		bufMgr->printSelf();
 		rootPageNum = newRootId;
-		bufMgr->unPinPage(file, rootPageNum, true);
 	}
 	
 }
