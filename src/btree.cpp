@@ -117,7 +117,7 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-
+  bufMgr->unPinPage(file, 2, true);
   bufMgr->flushFile(file);
   delete file;
 
@@ -430,6 +430,13 @@ void BTreeIndex::findPage(PageId pid)
 	bufMgr->readPage(file, pid, currPage);
 	struct NonLeafNodeInt* node = (struct NonLeafNodeInt*)(currPage);
 	currentPageNum = pid;
+	
+	if(node->type == LEAF)
+	{
+		currentPageNum = pid;
+		bufMgr->unPinPage(file, pid, false);
+		return;
+	}
 
 	for (size_t i = 0; i < INTARRAYNONLEAFSIZE; i++)
 	{
@@ -437,7 +444,7 @@ void BTreeIndex::findPage(PageId pid)
 		{
 			if (node->level == 1)
 			{			
-				currentPageNum = node->pageNoArray[i];
+				currentPageNum = node->pageNoArray[i];				
 				bufMgr->unPinPage(file, pid, false);
 				return;
 			}
@@ -475,27 +482,35 @@ void BTreeIndex::startScan(const void* lowValParm,
 	highValInt = *((int*)highValParm);
 	//To Do: error checking the opcode/params
 
-	if (rootPageNum != 2)
-		findPage(rootPageNum);
-	
+	findPage(rootPageNum);
+	std::cout<<"Start scan"<<std::endl;
 	scanExecuting = true;
 	bufMgr->readPage(file, currentPageNum, currentPageData);
-
+	std::cout<<"pin: "<<currentPageNum<<std::endl;
 	struct LeafNodeInt* node =(struct LeafNodeInt*)(currentPageData);
 
 	for (size_t i = 0; i < INTARRAYLEAFSIZE; i++)
 	{
 		if ((lowOp == GTE) && (node->keyArray[i] >= lowValInt))
 		{
+			std::cout<<"Branch one"<<std::endl;
 			nextEntry = i;
+			bufMgr->unPinPage(file, currentPageNum, false);
+			std::cout<<"unpin: "<<currentPageNum<<std::endl;
+			std::cout<<"return start scan one"<<std::endl;
 			return;
 		}
 		else if ((lowOp == GT) && (node->keyArray[i] > lowValInt))
 		{
+			std::cout<<"Branch two"<<std::endl;
+			bufMgr->unPinPage(file, currentPageNum, false);
 			nextEntry = i;
+			std::cout<<"unpin: "<<currentPageNum<<std::endl;
+			std::cout<<"return start scan two"<<std::endl;
 			return;
-		}	
-	}	
+		}
+	}
+	std::cout<<"return start scan 3"<<std::endl;	
 	throw NoSuchKeyFoundException();
 	 
 }
@@ -510,6 +525,8 @@ void BTreeIndex::scanNext(RecordId& outRid)
 	if (scanExecuting)
 	{
 		struct LeafNodeInt* node = (struct LeafNodeInt*)(currentPageData);
+
+
 		if (node->ridArray[nextEntry].page_number == Page::INVALID_NUMBER)
 		{
 			nextEntry = INTARRAYLEAFSIZE;
@@ -518,16 +535,19 @@ void BTreeIndex::scanNext(RecordId& outRid)
 
 		if (nextEntry == INTARRAYLEAFSIZE)
 		{
-			bufMgr->unPinPage(file, currentPageNum, false);
 			if (node->rightSibPageNo != Page::INVALID_NUMBER)
 			{
-				bufMgr->readPage(file,node->rightSibPageNo, currentPageData);
+				bufMgr->readPage(file,node->rightSibPageNo, currentPageData);				
 				currentPageNum = node->rightSibPageNo;
+				std::cout<<"pin: "<<currentPageNum<<std::endl;
+				bufMgr->unPinPage(file, currentPageNum, false);
+				std::cout<<"unpin: "<<currentPageNum<<std::endl;
 				nextEntry = 0;				
 			}
 			else
 			{
 				bufMgr->unPinPage(file,currentPageNum,false);
+				std::cout<<"unpin: "<<currentPageNum<<std::endl;
 				endScan();
 			}				
 		}
