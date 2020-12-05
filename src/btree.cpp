@@ -92,11 +92,14 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				const char *record = recordStr.c_str();
 				int key = *((int*)(record + attrByteOffset));
 				insertEntry(&key, scanRid);
-				dex->rootPageNo = rootPageNum;	
+				bufMgr->unPinPage(file, rootPageNum, true);
+				dex->rootPageNo = rootPageNum;
+
 			}
 		}
 		catch(const EndOfFileException &e)
 		{
+			scanExecuting = false;
 			bufMgr->unPinPage(file,headerPageNum, true);
 			std::cout << "IndexMetaInfo Page: " << headerPageNum<<std::endl;
 			std::cout << "rootPageNum: " << rootPageNum<<std::endl;
@@ -117,7 +120,7 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-  bufMgr->unPinPage(file, 2, true);
+  //bufMgr->unPinPage(file, ((badgerdb::PageId)2), true);
   bufMgr->flushFile(file);
   delete file;
 
@@ -426,8 +429,10 @@ void BTreeIndex::insertEntry(const void *key, const RecordId rid)
 */
 void BTreeIndex::findPage(PageId pid)
 {
+	std::cout<<"Find Page"<<std::endl;
 	Page* currPage;
 	bufMgr->readPage(file, pid, currPage);
+	std::cout<<"pin: "<<pid<<std::endl;
 	struct NonLeafNodeInt* node = (struct NonLeafNodeInt*)(currPage);
 	currentPageNum = pid;
 	
@@ -435,6 +440,7 @@ void BTreeIndex::findPage(PageId pid)
 	{
 		currentPageNum = pid;
 		bufMgr->unPinPage(file, pid, false);
+		std::cout<<"unpin: "<<pid<<std::endl;
 		return;
 	}
 
@@ -446,12 +452,14 @@ void BTreeIndex::findPage(PageId pid)
 			{			
 				currentPageNum = node->pageNoArray[i];				
 				bufMgr->unPinPage(file, pid, false);
+				std::cout<<"unpin: "<<pid<<std::endl;
 				return;
 			}
 			else
 			{
 				findPage(node->pageNoArray[i]);
 				bufMgr->unPinPage(file, pid, false);
+				std::cout<<"unpin: "<<pid<<std::endl;
 				return;
 			}	
 			
@@ -510,6 +518,7 @@ void BTreeIndex::startScan(const void* lowValParm,
 			return;
 		}
 	}
+	bufMgr->unPinPage(file, currentPageNum, false);
 	std::cout<<"return start scan 3"<<std::endl;	
 	throw NoSuchKeyFoundException();
 	 

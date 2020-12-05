@@ -154,10 +154,9 @@ int main(int argc, char **argv)
 	test3();
 	//test4();
 	//test5();
-  //test6();
-  //test7();
-	errorTests();
-
+  	//test6();
+  	//test7();
+	//errorTests();
 	delete bufMgr;
 
   return 1;
@@ -243,8 +242,9 @@ void test7()
 	std::cout << "---------------------" << std::endl;
 	std::cout << "CreateThenDelete" << std::endl;
 	createRelationForward();
+	BTreeIndex index(relationName, intIndexName, bufMgr, offsetof(tuple,i), INTEGER);
 	deleteRelation();
-  std::cout << "\nTest 7 passed\n" << std::endl;
+  	std::cout << "\nTest 7 passed\n" << std::endl;
 }
 
 // -----------------------------------------------------------------------------
