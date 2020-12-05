@@ -94,11 +94,10 @@ BTreeIndex::BTreeIndex(const std::string & relationName,
 				insertEntry(&key, scanRid);
 				dex->rootPageNo = rootPageNum;	
 			}
-			
-			bufMgr->unPinPage(file,headerPageNum, true);
 		}
 		catch(const EndOfFileException &e)
 		{
+			bufMgr->unPinPage(file,headerPageNum, true);
 			std::cout << "IndexMetaInfo Page: " << headerPageNum<<std::endl;
 			std::cout << "rootPageNum: " << rootPageNum<<std::endl;
 			std::cout << "End Constructor" << std::endl;
@@ -118,7 +117,7 @@ BTreeIndex::~BTreeIndex()
   if(scanExecuting){
     endScan();
   }
-  
+
   bufMgr->flushFile(file);
   delete file;
 
