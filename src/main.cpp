@@ -69,7 +69,7 @@ void createRelationBackward();
 void createRelationRandom();
 void createRelationForwardLarge();
 void createRelationBackwardLarge();
-void createRelationForwardZeroTuples();
+void createRelationRandomLarge();
 void indexEmptyTests();
 void intTests();
 void intTestsLarge();
@@ -88,7 +88,6 @@ void test5();
 void test6();
 void test7();
 void test8();
-void test9();
 void errorTests();
 void deleteRelation();
 
@@ -156,10 +155,10 @@ int main(int argc, char **argv)
 	//test3();
 	//test4();
 	//test5();
-  	//test6();
-  	//test7();
+	//test6();
+	//test7();
   test8();
-  test9();
+
 	errorTests();
 	delete bufMgr;
 
@@ -256,47 +255,14 @@ void test8()
 	// Create a relation with tuples valued 0 to relationSize and perform index tests 
 	// on attributes of all three types (int, double, string)
 	std::cout << "---------------------" << std::endl;
-	std::cout << "TestDoesNotDeleteRelation" << std::endl;
-	createRelationForward();
-	indexTests();
+	std::cout << "CreateRelationRandomLarge" << std::endl;
+	createRelationRandomLarge();
+	indexTestsLarge();
+  deleteRelation();
   std::cout << "\nTest 8 Passed\n" << std::endl;
 }
 
-void test9()
-{
-	// Create a relation with tuples valued 0 to relationSize and perform index tests 
-	// on attributes of all three types (int, double, string)
-	std::cout << "---------------------" << std::endl;
-	std::cout << "BadIndexInfoException" << std::endl;
-	createRelationForward();
-	indexTests();
-  deleteRelation();
-  std::cout << "\nTest 9 Passed \n" << std::endl;
-}
 
-
-// -----------------------------------------------------------------------------
-// createZeroRelationForward
-// -----------------------------------------------------------------------------
-void createRelationForwardZeroTuples()
-{
-  std::vector<RecordId> ridVec;
-  // destroy any old copies of relation file
-  try
-  {
-    File::remove(relationName);
-  }
-  catch (FileNotFoundException e)
-  {
-  }
-  file1 = new PageFile(relationName, true);
-
-  // Initialize all of record1.s to keep purify happy
-  memset(record1.s, ' ', sizeof(record1.s));
-  PageId new_page_number;
-  Page new_page = file1->allocatePage(new_page_number);
-  file1->writePage(new_page_number, new_page);
-}
 // -----------------------------------------------------------------------------
 // createRelationForward
 // -----------------------------------------------------------------------------
@@ -555,6 +521,72 @@ void createRelationBackwardLarge()
 
 	file1->writePage(new_page_number, new_page);
 }
+
+// -----------------------------------------------------------------------------
+// createRelationRandom
+// -----------------------------------------------------------------------------
+
+void createRelationRandomLarge()
+{
+  // destroy any old copies of relation fileq
+	try
+	{
+		File::remove(relationName);
+	}
+	catch(const FileNotFoundException &e)
+	{
+	}
+  file1 = new PageFile(relationName, true);
+
+  // initialize all of record1.s to keep purify happy
+  memset(record1.s, ' ', sizeof(record1.s));
+	PageId new_page_number;
+  Page new_page = file1->allocatePage(new_page_number);
+
+  // insert records in random order
+
+  std::vector<int> intvec(largeRelationSize);
+  for( int i = 0; i < largeRelationSize; i++ )
+  {
+    intvec[i] = i;
+  }
+
+  long pos;
+  int val;
+	int i = 0;
+  while( i < largeRelationSize )
+  {
+    pos = random() % (largeRelationSize-i);
+    val = intvec[pos];
+    sprintf(record1.s, "%05d string record", val);
+    record1.i = val;
+    record1.d = val;
+
+    std::string new_data(reinterpret_cast<char*>(&record1), sizeof(RECORD));
+
+		while(1)
+		{
+			try
+			{
+    		new_page.insertRecord(new_data);
+				break;
+			}
+			catch(const InsufficientSpaceException &e)
+			{
+      	file1->writePage(new_page_number, new_page);
+  			new_page = file1->allocatePage(new_page_number);
+			}
+		}
+
+		int temp = intvec[largeRelationSize-1-i];
+		intvec[largeRelationSize-1-i] = intvec[pos];
+		intvec[pos] = temp;
+		i++;
+  }
+  
+	file1->writePage(new_page_number, new_page);
+}
+
 // -----------------------------------------------------------------------------
 // indexTests
 // -----------------------------------------------------------------------------
